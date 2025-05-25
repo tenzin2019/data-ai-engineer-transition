@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+# Declaring FastAPI Obj
 app = FastAPI()
 
 # Health check route
