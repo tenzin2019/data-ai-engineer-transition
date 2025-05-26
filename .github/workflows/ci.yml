@@ -25,11 +25,10 @@ jobs:
           pip install pytest requests
 
       - name: Build Docker image
-        run: docker build -t loan-predictor-app .
-
-      - name: Run Docker container for tests
-        run: |
-          docker run -d --name loan-predictor-api -p 8000:8000 loan-predictor-app
+        run: docker build -t loan-predictor-app ./phase-1-mlops/loan-default-prediction
+      
+      - name: Build Docker image
+        run: docker build -t loan-predictor-app ./phase-1-mlops/loan-default-prediction
           sleep 5  # give FastAPI some time to start
 
       - name: Run pytest
