@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pandas
+requests
 scikit-learn
 mlflow
 joblib

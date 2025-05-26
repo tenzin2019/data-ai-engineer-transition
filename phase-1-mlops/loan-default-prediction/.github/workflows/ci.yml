@@ -43,3 +43,12 @@ jobs:
         run: |
           docker stop loan-predictor-api
           docker rm loan-predictor-api
+      
+      - name: Install test dependencies
+        run: |
+          pip install pytest requests
+
+      - name: Run pytest
+        run: pytest tests/
+
+      
