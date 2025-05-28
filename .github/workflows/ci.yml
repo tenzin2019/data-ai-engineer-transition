@@ -54,8 +54,9 @@ jobs:
         env:
           USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          docker tag loan-predictor-app:${{ github.sha }} $USERNAME/loan-predictor-app:${{ github.sha }}
-          docker push $USERNAME/loan-predictor-app:latest     
+          docker tag loan-predictor-app:${{ github.sha }} $DOCKER_USERNAME/loan-predictor-app:latest
+          docker push $DOCKER_USERNAME/loan-predictor-app:latest
+        #docker tag loan-predictor-app:${{ github.sha }} $USERNAME/loan-predictor-app:${{ github.sha }}
         #docker push $USERNAME/loan-predictor-app:${{ github.sha }}
 
       - name: Deploy to Azure Web App (main/dev only)
