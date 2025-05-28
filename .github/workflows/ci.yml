@@ -51,9 +51,12 @@ jobs:
 
       - name: Push Docker image to DockerHub (main/dev only)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          docker tag loan-predictor-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/loan-predictor-app:${{ github.sha }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/loan-predictor-app:${{ github.sha }}
+          docker tag loan-predictor-app:${{ github.sha }} $USERNAME/loan-predictor-app:${{ github.sha }}
+          docker push $USERNAME/loan-predictor-app:${{ github.sha }}
+      
 
       - name: Cleanup container
         if: always()
