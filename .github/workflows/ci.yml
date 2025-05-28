@@ -56,7 +56,14 @@ jobs:
         run: |
           docker tag loan-predictor-app:${{ github.sha }} $USERNAME/loan-predictor-app:${{ github.sha }}
           docker push $USERNAME/loan-predictor-app:${{ github.sha }}
-      
+
+      - name: Deploy to Azure Web App (main/dev only)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: loan-predictor-app
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          images: ${{ secrets.DOCKER_USERNAME }}/loan-predictor-app:latest
 
       - name: Cleanup container
         if: always()
