@@ -1,0 +1,56 @@
+name: CI/CD Pipeline for Loan Predictor App
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - feature/**
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest requests
+
+      - name: Build Docker image from project subfolder
+        run: |
+          docker build -t loan-predictor-app \
+            -f phase-1-mlops/loan-default-prediction/Dockerfile \
+            phase-1-mlops/loan-default-prediction
+
+      - name: Run Docker container for testing
+        run: |
+          docker run -d --name loan-predictor-api -p 8000:8000 loan-predictor-app
+          sleep 5
+
+      - name: Run pytest
+        run: pytest phase-1-mlops/loan-default-prediction/tests/
+
+      - name: Log in to DockerHub (if credentials exist)
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ]; then
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          else
+            echo "🔒 Docker credentials not found. Skipping login."
+          fi
+
+      - name: Cleanup container
+        if: always()
+        run: |
+          docker stop loan-predictor-api
+          docker rm loan-predictor-api
