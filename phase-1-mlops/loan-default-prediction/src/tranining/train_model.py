@@ -6,20 +6,20 @@ from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
-from mlflow.models.signature import infer_signature
 
 # Set the tracking URI to the MLflow tracking server
-mlflow.set_tracking_uri("http://localhost:9090")
+mlflow.set_tracking_uri("http://localhost:6060")
 
 # Constants
 EXPERIMENT_NAME = "loan-default-experiment"
 MODEL_NAME = "loan-default-model"
 MODEL_ALIAS = "production"
 
+print("Starting training process...")
 print(f"Using MLflow tracking URI: {mlflow.get_tracking_uri()}")
-print(f"current directory: {os.getcwd()}")
+print("current working directory:", os.getcwd())
 # Load data
-DATA_PATH = "phase-1-mlops/loan-default-prediction/src/data/loan_data.csv"
+DATA_PATH = "src/data/loan_data.csv"
 data = pd.read_csv(DATA_PATH)
 X = data[["age", "income", "loan_amount"]].astype("float64")
 y = data["default"]
@@ -55,17 +55,7 @@ with mlflow.start_run(experiment_id=experiment_id) as run:
     # Log parameters, metrics, and model
     mlflow.log_param("n_estimators", 100)
     mlflow.log_metric("accuracy", accuracy)
-
-    # Infer the signature and set input_example
-    signature = infer_signature(X_train, model.predict(X_train))
-    input_example = X_train.iloc[:5]
-
-    mlflow.sklearn.log_model(
-        model,
-        "model",
-        signature=signature,
-        input_example=input_example
-    )
+    mlflow.sklearn.log_model(model, "model")
 
     # Register model
     model_uri = f"runs:/{run_id}/model"

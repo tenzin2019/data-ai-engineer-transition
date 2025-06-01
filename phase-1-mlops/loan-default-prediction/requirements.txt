@@ -1,3 +1,6 @@
+azure-storage-blob
+azure-identity
+azure-keyvault-secrets
 fastapi
 uvicorn
 pandas
@@ -7,4 +10,3 @@ mlflow
 joblib
 python-dotenv
 pytest
-mlflow
