@@ -64,7 +64,7 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
-          docker run --rm \
+          docker run --rm --env-file <(env | grep AZURE_) \
           loan-predictor-app:${{ github.sha }} \
           python src/training/deploy_model.py
 
