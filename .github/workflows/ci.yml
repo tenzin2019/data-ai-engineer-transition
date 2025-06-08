@@ -1,5 +1,6 @@
 name: CI/CD Pipeline for Loan Predictor App
 
+
 on:
   push:
     branches:

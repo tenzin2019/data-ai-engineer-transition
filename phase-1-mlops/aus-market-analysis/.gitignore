@@ -1,5 +1,4 @@
 # Python artifacts
-
 *.py[cod]
 *.egg-info/
 *.so
@@ -8,7 +7,7 @@
 .ipynb_checkpoints/
 
 # Virtual environment
-ai-env/
+aus-env/
 venv/
 .env
 
@@ -21,13 +20,13 @@ venv/
 mlruns/
 
 # Data files
-# *.csv
+*.csv
 *.tsv
 *.xlsx
 *.json
 *.parquet
 *.zip
-# data/
+data/
 datasets/
 
 # Logs and outputs
@@ -47,3 +46,6 @@ docker-compose.override.yml
 .idea/
 .DS_Store
 *.swp
+
+# Documentation
+site/
