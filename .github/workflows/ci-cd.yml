@@ -35,7 +35,10 @@ jobs:
       # Build Docker image (from project folder)
       - name: Build Docker image
         run: |
-          docker build -t loan-predictor-app:${{ github.sha }} .
+          docker build -t loan-predictor-app:${{ github.sha }} \
+          -f phase-1-mlops/loan-default-prediction/Dockerfile \
+          phase-1-mlops/loan-default-prediction
+
 
       # Run model training in container to ensure build works
       - name: Train model in Docker container
