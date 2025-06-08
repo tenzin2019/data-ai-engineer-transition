@@ -51,7 +51,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           docker run --rm \
-          loan-predictor-app:latest python src/training/train_model.py
+          loan-predictor-app:${{ github.sha }} python src/training/train_model.py
 
       # Deploy model/endpoint (main/dev branches only)
       - name: Deploy to Azure ML (main/dev only)
@@ -64,7 +64,8 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
-          pip install azure-ai-ml azure-identity
+          docker run --rm \
+          loan-predictor-app:${{ github.sha }} \
           python src/training/deploy_model.py
 
       # (Optional) Integration test for the endpoint after deployment
