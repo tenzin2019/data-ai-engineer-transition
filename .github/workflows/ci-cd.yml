@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r phase-1-mlops/loan-default-prediction/requirements.txt
 
       # Run unit and integration tests outside Docker (optional but fast)
       - name: Run unit/integration tests
