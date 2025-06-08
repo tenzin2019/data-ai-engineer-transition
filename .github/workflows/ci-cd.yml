@@ -36,8 +36,8 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t loan-predictor-app:${{ github.sha }} \
-          -f phase-1-mlops/loan-default-prediction/Dockerfile \
-          phase-1-mlops/loan-default-prediction
+            -f phase-1-mlops/loan-default-prediction/Dockerfile \
+            phase-1-mlops/loan-default-prediction
 
 
       # Run model training in container to ensure build works
@@ -46,13 +46,12 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
           AZURE_WORKSPACE_NAME: ${{ secrets.AZURE_WORKSPACE_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           docker run --rm \
-            -e AZURE_SUBSCRIPTION_ID \
-            -e AZURE_RESOURCE_GROUP \
-            -e AZURE_WORKSPACE_NAME \
-            loan-predictor-app:${{ github.sha }} \
-            python src/training/train_model.py
+          loan-predictor-app:latest python src/training/train_model.py
 
       # Deploy model/endpoint (main/dev branches only)
       - name: Deploy to Azure ML (main/dev only)
