@@ -27,7 +27,7 @@ mlruns/
 *.json
 *.parquet
 *.zip
-data/
+# data/
 datasets/
 
 # Logs and outputs
