@@ -29,8 +29,14 @@ jobs:
 
       # Run unit and integration tests outside Docker (optional but fast)
       - name: Run unit/integration tests
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          ENDPOINT_URI: ${{ secrets.ENDPOINT_URI }}
+          ENDPOINT_KEY: ${{ secrets.ENDPOINT_KEY }}
         run: |
-          pytest phase-1-mlops/loan-default-prediction/tests/
+          pytest phase-1-mlops/loan-default-prediction/tests/test_dummy.py
+          pip install requests
+          python phase-1-mlops/loan-default-prediction/tests/test_endpoint.py
 
       # Build Docker image (from project folder)
       - name: Build Docker image
