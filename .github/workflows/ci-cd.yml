@@ -30,7 +30,7 @@ jobs:
       # Run unit and integration tests outside Docker (optional but fast)
       - name: Run unit/integration tests
         run: |
-          pytest tests/
+          pytest phase-1-mlops/loan-default-prediction/tests/
 
       # Build Docker image (from project folder)
       - name: Build Docker image
