@@ -1,7 +1,6 @@
-# Senior Data & AI Engineer Transition – Tenzin Jamyang
+## 👋 About Me
 
-Welcome! 👋  
-This repository documents my end-to-end journey transitioning from a Data Scientist to a **Senior Data and AI Engineer**. It includes all learning phases, projects, experiments, and final portfolio components — built with the goal of mastering full-stack AI engineering in real-world environments.
+I'm Tenzin, a Data Scientist turned aspiring Senior Data & AI Engineer. My goal: to build, automate, and ship robust AI systems that deliver value in the cloud, using best-in-class MLOps and LLM tech. This repo is my living proof, from setup to production, that a solo engineer can go full-stack in modern AI.
 
 ---
 
