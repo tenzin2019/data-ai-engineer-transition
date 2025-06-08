@@ -8,19 +8,22 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Step 3: Install OS dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies (if you need e.g., build-essential, git, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Step 4: Copy requirement files and install dependencies
+# Copy requirements file first (for Docker cache efficiency)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Step 5: Copy app source code into container
+# Install Python dependencies
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copy the rest of your project files into the container
 COPY ./src ./src
 
-# Step 6: Expose port
+# Optional: Expose port if you're running an API server
 EXPOSE 8000
 
-# Step 7: Set the command to run FastAPI server
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command: run tests (change this as needed)
+CMD ["pytest", "tests/"]

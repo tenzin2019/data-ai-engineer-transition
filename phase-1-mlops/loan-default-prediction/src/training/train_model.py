@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 
+from azure.ai.ml.entities import Model
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
@@ -336,17 +337,16 @@ def main():
         mlflow.log_text(report, "classification_report.txt")
         
         # --- Log model with MLflow ---
+        model_dir = "model"
         signature = infer_signature(X_train, model.predict(X_train))
         input_example = X_train.iloc[:5]
-        
         mlflow.sklearn.log_model(
             model,
-            "model",
+            model_dir,
             signature=signature,
             input_example=input_example
         )
-        
-        logger.info(f"✅ Model trained and logged for run ID: {run_id}")
+        logging.info(f"✅ Model logged for run ID: {run.info.run_id}")
         
         # Print links to MLflow UI
         experiment_url = f"{tracking_uri}/#/experiments/{experiment.experiment_id}"
@@ -354,6 +354,17 @@ def main():
         
         print(f"🏃 View run {run_name} at: {run_url}")
         print(f"🧪 View experiment at: {experiment_url}")
+
+        # --- Register model in Azure ML Model Registry ---
+        model_path = f"runs:/{run.info.run_id}/{model_dir}"
+        azureml_model = Model(
+            path=model_path,
+            name=MODEL_NAME,
+            description="Loan default model registered at train time",
+            type="mlflow_model"
+        )
+        registered_model = ml_client.models.create_or_update(azureml_model)
+        logging.info(f"✅ Registered Model: {registered_model.name}, version: {registered_model.version}")
         
         # End the run explicitly
         mlflow.end_run()
