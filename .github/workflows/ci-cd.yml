@@ -76,7 +76,7 @@ jobs:
           ENDPOINT_KEY: ${{ secrets.ENDPOINT_KEY }}
         run: |
           pip install requests
-          python tests/test_endpoint.py
+          python phase-1-mlops/loan-default-prediction/tests/test_endpoint.py
 
       # Cleanup Docker (optional)
       - name: Docker cleanup
