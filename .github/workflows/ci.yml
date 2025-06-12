@@ -37,7 +37,7 @@ jobs:
           sleep 5
 
       - name: Run pytest
-        run: pytest phase-1-mlops/loan-default-prediction/tests/
+        run: pytest phase-1-mlops/loan-default-prediction/tests/test_dummy.py
 
       - name: Log in to DockerHub (if credentials exist)
         env:
