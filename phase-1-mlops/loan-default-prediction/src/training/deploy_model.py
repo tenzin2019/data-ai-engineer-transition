@@ -4,20 +4,20 @@ from azure.identity import DefaultAzureCredential
 from azure.ai.ml import MLClient
 from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
 
-# Retrieve Azure ML workspace details from environment variables
+# --- Get workspace config from env ---
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 resource_group = os.getenv("AZURE_RESOURCE_GROUP")
 workspace_name = os.getenv("AZURE_WORKSPACE_NAME")
 
-# Define model details
+# --- Model details ---
 model_name = "loan-default-model"
 model_version = 1
 
-# Generate a unique endpoint name (max 32 characters)
+# Generate uniq endpoint name, Azure limit is 32 chars
 short_name = "loandef"
 endpoint_name = f"{short_name}-ep-{uuid.uuid4().hex[:6]}"
 
-# Authenticate and create MLClient
+# --- Auth with Azure ML ---
 ml_client = MLClient(
     credential=DefaultAzureCredential(),
     subscription_id=subscription_id,
@@ -25,40 +25,38 @@ ml_client = MLClient(
     workspace_name=workspace_name,
 )
 
-# Create the managed online endpoint
+# --- Create managed online endpoint ---
 endpoint = ManagedOnlineEndpoint(
     name=endpoint_name,
     description=f"{model_name} serving endpoint",
     auth_mode="key"
 )
 
+# create or update endpoint (should be idempotent, re-runs ok)
 ml_client.begin_create_or_update(endpoint).result()
-print(f"✅ Endpoint created: {endpoint_name}")
+print(f"Endpoint created: {endpoint_name}")
 
-# Define the deployment
+# --- Deployment config (blue is the default slot) ---
 deployment = ManagedOnlineDeployment(
     name="blue",
     endpoint_name=endpoint_name,
     model=f"{model_name}:{model_version}",
-    instance_type="Standard_F4s_v2",
+    instance_type="Standard_F4s_v2",  # cheap VM for test only, prod should use diff
     instance_count=1
 )
 
 ml_client.begin_create_or_update(deployment).result()
-print("✅ Model deployed to endpoint.")
+print("Model deployed to endpoint.")
 
-# Retrieve the endpoint to update traffic settings
+# --- Set traffic 100% to blue slot (default after first deploy) ---
 endpoint = ml_client.online_endpoints.get(name=endpoint_name)
-
-# Set 100% traffic to the 'blue' deployment
 endpoint.traffic = {"blue": 100}
 
-# Update the endpoint with the new traffic configuration
+# "begin_create_or_update" works for both new and update, a bit confuzing
 ml_client.begin_create_or_update(endpoint).result()
-print(f"🚀 Deployment complete. Endpoint: {endpoint_name}")
+print(f"Deployment complete. Endpoint: {endpoint_name}")
 
-# Retrieve and display the scoring URI and primary key
-# Retrieve and display the scoring URI and primary key
+# --- Print scoring URL and primary key for testing ---
 endpoint_obj = ml_client.online_endpoints.get(name=endpoint_name)
 keys = ml_client.online_endpoints.get_keys(name=endpoint_name)
 print("Scoring URI:", endpoint_obj.scoring_uri)
