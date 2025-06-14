@@ -1,3 +1,6 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# Ignore the DVC configuration file to avoid committing sensitive or environment-specific settings
+.dvc/config.local
