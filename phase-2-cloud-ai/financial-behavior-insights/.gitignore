@@ -27,9 +27,11 @@ mlruns/
 *.json
 *.parquet
 *.zip
+
+# Ignore all data files except those tracked by DVC
 data/*
-!data/*.dvc
-!data/README.md
+!data/**/*.dvc
+!data/**/README.md
 # DVC config file secrets
 .dvc/config.local
 
