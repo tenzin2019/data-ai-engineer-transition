@@ -1,2 +1,4 @@
 [core]
-    no_scm = True
+    remote = azure_remote
+['remote "azure_remote"']
+    url = azure://phase-2-financial-behaviour-dataset/phase-2-financial-behaviour-dataset

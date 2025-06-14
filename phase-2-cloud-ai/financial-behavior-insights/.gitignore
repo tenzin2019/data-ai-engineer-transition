@@ -30,11 +30,9 @@ mlruns/
 data/*
 !data/*.dvc
 !data/README.md
-
+# DVC config file secrets
 .dvc/config.local
 
-
-# Logs and outputs
 *.log
 *.out
 *.err
