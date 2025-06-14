@@ -21,7 +21,7 @@ venv/
 mlruns/
 
 # Data files
-# *.csv
+*.csv
 *.tsv
 *.xlsx
 *.json
@@ -29,7 +29,7 @@ mlruns/
 *.zip
 
 # Ignore all data files except those tracked by DVC
-data/*
+data//*
 !data/**/*.dvc
 !data/**/README.md
 # DVC config file secrets
