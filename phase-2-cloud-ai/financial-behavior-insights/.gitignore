@@ -28,8 +28,11 @@ mlruns/
 *.parquet
 *.zip
 data/*
-data/*.dvc
-datasets/
+!data/*.dvc
+!data/README.md
+
+.dvc/config.local
+
 
 # Logs and outputs
 *.log
