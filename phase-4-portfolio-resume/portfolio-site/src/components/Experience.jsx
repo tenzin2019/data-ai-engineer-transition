@@ -26,36 +26,43 @@ const Experience = () => {
   const experiences = [
     {
       title: "Data Scientist",
-      company: "Tibet Data",
-      period: "2022 - Present",
-      description: "Leading data science initiatives and developing machine learning solutions for business problems.",
+      company: "Fair Work Commission",
+      period: "July 2023 - Present (2 years)",
+      location: "Canberra, Australian Capital Territory, Australia",
+      description: "",
+      achievements: []
+    },
+    {
+      title: "Junior Data Scientist",
+      company: "Fair Work Commission",
+      period: "July 2021 - July 2023 (2 years 1 month)",
+      location: "Canberra, Australian Capital Territory, Australia",
+      description: "",
+      achievements: []
+    },
+    {
+      title: "Data Scientist",
+      company: "PIT-M3D International",
+      period: "March 2020 - June 2021 (1 year 4 months)",
+      location: "Sydney, New South Wales, Australia",
+      description: "",
       achievements: [
-        "Developed and deployed ML models for predictive analytics",
-        "Implemented MLOps practices for model lifecycle management",
-        "Led data-driven decision making processes"
+        "Led extensive data mining operations",
+        "Developed and maintained data pipelines",
+        "Collaborated with cross-functional teams",
+        "Implemented data visualization tools",
+        "Optimized data processing workflows",
+        "Developed and maintained data pipelines",
+        "Collaborated with cross-functional teams",
       ]
     },
     {
-      title: "Data Analyst",
-      company: "Tibet Data",
-      period: "2021 - 2022",
-      description: "Analyzed complex datasets and created visualizations to drive business insights.",
-      achievements: [
-        "Created interactive dashboards for business metrics",
-        "Conducted statistical analysis for business optimization",
-        "Collaborated with cross-functional teams on data projects"
-      ]
-    },
-    {
-      title: "Research Assistant",
-      company: "University of Washington",
-      period: "2020 - 2021",
-      description: "Assisted in research projects focusing on data analysis and machine learning applications.",
-      achievements: [
-        "Contributed to academic research papers",
-        "Implemented machine learning algorithms",
-        "Conducted data collection and preprocessing"
-      ]
+      title: "Global Scope Business Consultant",
+      company: "Rec Alley",
+      period: "November 2019 - December 2019 (2 months)",
+      location: "Gregory Hills, NSW",
+      description: "",
+      achievements: []
     }
   ];
 

@@ -54,13 +54,7 @@ const Skills = () => {
                     <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
-                        style={{ width: '0%' }}
-                        onMouseEnter={(e) => {
-                          e.target.style.width = `${skill.level}%`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.width = '0%';
-                        }}
+                        style={{ width: `${skill.level}%` }}
                       />
                     </div>
                   </div>
