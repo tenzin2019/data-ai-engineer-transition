@@ -1,0 +1,90 @@
+name: CI/CD Pipeline for Loan Predictor App
+
+on:
+  push:
+    branches: [main, dev, feature/**]
+  pull_request:
+    branches: [main, dev, feature/**]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repo code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Python for tests/linting
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Install Python dependencies (for running pytest and scripts outside Docker)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r phase-1-mlops/loan-default-prediction/requirements.txt
+
+      # Run unit and integration tests outside Docker (optional but fast)
+      - name: Run unit/integration tests
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          ENDPOINT_URI: ${{ secrets.ENDPOINT_URI }}
+          ENDPOINT_KEY: ${{ secrets.ENDPOINT_KEY }}
+        run: |
+          pytest phase-1-mlops/loan-default-prediction/tests/test_dummy.py
+          pip install requests
+          python phase-1-mlops/loan-default-prediction/tests/test_endpoint.py
+
+      # Build Docker image (from project folder)
+      - name: Build Docker image
+        run: |
+          docker build -t loan-predictor-app:${{ github.sha }} \
+            -f phase-1-mlops/loan-default-prediction/Dockerfile \
+            phase-1-mlops/loan-default-prediction
+
+
+      # Run model training in container to ensure build works
+      - name: Train model in Docker container
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_WORKSPACE_NAME: ${{ secrets.AZURE_WORKSPACE_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          docker run --rm --env-file <(env | grep AZURE_) \
+          loan-predictor-app:${{ github.sha }} python src/training/train_model.py
+
+      # Deploy model/endpoint (main/dev branches only)
+      - name: Deploy to Azure ML (main/dev only)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_WORKSPACE_NAME: ${{ secrets.AZURE_WORKSPACE_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          docker run --rm --env-file <(env | grep AZURE_) \
+          loan-predictor-app:${{ github.sha }} \
+          python src/training/deploy_model.py
+
+      # (Optional) Integration test for the endpoint after deploymentßß
+      - name: Test deployed endpoint (main/dev only)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+        env:
+          ENDPOINT_URI: ${{ secrets.ENDPOINT_URI }}
+          ENDPOINT_KEY: ${{ secrets.ENDPOINT_KEY }}
+        run: |
+          pip install requests
+          python phase-1-mlops/loan-default-prediction/tests/test_endpoint.py
+
+      # Cleanup Docker (optional)
+      - name: Docker cleanup
+        if: always()
+        run: docker system prune -af
