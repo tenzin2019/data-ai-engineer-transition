@@ -20,11 +20,11 @@ ml_client = MLClient(
 
 # Register the DVC-tracked CSV as a Data Asset
 data_asset = Data(
-    path="phase-2-cloud-ai/financial-behavior-insights/data/Banking-Dataset/Comprehensive_Banking_Database.csv",
+    path="/Users/tenzinjamyang/Desktop/GitHub/data-ai-engineer-transition/phase-2-cloud-ai/financial-behavior-insights/data/processed/Comprehensive_Banking_Database_processed.csv",
     type="uri_file",
-    name="comprehensive-banking-database",
+    name="preprocessed-comprehensive-banking-database",
     version="1",
-    description="Comprehensive transaction-level banking data"
+    description="Preprocessed Comprehensive transaction-level banking data"
 )
 
 ml_client.data.create_or_update(data_asset)

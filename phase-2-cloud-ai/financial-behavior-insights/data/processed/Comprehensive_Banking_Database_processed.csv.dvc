@@ -1,0 +1,5 @@
+outs:
+- md5: 11ded36b65808344e4b5e11e6f8be94d
+  size: 641597
+  hash: md5
+  path: Comprehensive_Banking_Database_processed.csv
