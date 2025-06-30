@@ -13,9 +13,17 @@ import joblib
 import mlflow
 import mlflow.sklearn
 
+# Azure ML imports for registration
+from azure.ai.ml import MLClient
+from azure.identity import DefaultAzureCredential
+from azure.ai.ml.entities import Model
+
+from dotenv import load_dotenv
+# Load environment variables from .env file
+load_dotenv()
 # ---------------- Logging Setup ----------------
 logging.basicConfig(
-    level=logging.INFO, 
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 logger = logging.getLogger(__name__)
@@ -59,7 +67,7 @@ def train_and_eval(model, X, y, random_state=42):
     )
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:,1] if hasattr(model, "predict_proba") else y_pred
+    y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else y_pred
 
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
@@ -70,6 +78,27 @@ def train_and_eval(model, X, y, random_state=42):
     }
     logger.info(f"Test set metrics: {metrics}")
     return model, metrics
+
+# ---------------- Model Registration (Azure ML) -----------------
+def register_model_azureml(model_path, model_name="financial-behavior-insights-model", description="Random Forest for HighAmount prediction"):
+    logger.info("Registering model to Azure ML Model Registry...")
+    try:
+        ml_client = MLClient(
+            credential=DefaultAzureCredential(),
+            subscription_id=os.environ["AZURE_SUBSCRIPTION_ID"],
+            resource_group_name=os.environ["AZURE_RESOURCE_GROUP"],
+            workspace_name=os.environ["AZURE_WORKSPACE_NAME"]
+        )
+        azureml_model = Model(
+            path=model_path,
+            name=model_name,
+            description=description,
+            type="custom_model"
+        )
+        registered_model = ml_client.models.create_or_update(azureml_model)
+        logger.info(f"Model registered: {registered_model.name} (version {registered_model.version})")
+    except Exception as e:
+        logger.error(f"Azure ML model registration failed: {e}")
 
 # ---------------- Pipeline Orchestration -----------------
 def main(args):
@@ -99,6 +128,13 @@ def main(args):
         metrics_path = os.path.join(args.output_dir, "metrics.json")
         pd.Series(metrics).to_json(metrics_path)
         mlflow.log_artifact(metrics_path)
+
+        # 4. Register model in Azure ML Model Registry
+        register_model_azureml(
+            model_path=model_path,
+            model_name="financial-behavior-insights-model",
+            description="Random Forest for HighAmount prediction"
+        )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
