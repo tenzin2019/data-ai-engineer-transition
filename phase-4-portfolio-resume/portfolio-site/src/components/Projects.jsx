@@ -5,21 +5,21 @@ const Projects = () => {
       description: 'MLOps project implementing end-to-end machine learning pipeline with experiment tracking and model deployment.',
       tech: ['Python', 'MLflow', 'Docker', 'FastAPI'],
       image: '/placeholder-loan.jpg',
-      link: '#'
+      link: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-1-mlops/loan-default-prediction'
     },
     {
       title: 'Financial Behavior Insights',
       description: 'Cloud-native AI application analyzing financial patterns using Azure ML and cloud services.',
       tech: ['Azure ML', 'Python', 'Docker', 'Azure Functions'],
       image: '/placeholder-finance.jpg',
-      link: '#'
+      link: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-2-cloud-ai/financial-behavior-insights'
     },
     {
       title: 'AUS Market Analysis',
       description: 'Data analysis and visualization project for Australian market trends and patterns.',
       tech: ['Python', 'Pandas', 'Plotly', 'Jupyter'],
       image: '/placeholder-market.jpg',
-      link: '#'
+      link: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-1-mlops/aus-market-analysis'
     }
   ];
 
@@ -57,6 +57,8 @@ const Projects = () => {
                 </div>
                 <a
                   href={project.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors duration-200"
                 >
                   View Project
@@ -73,7 +75,7 @@ const Projects = () => {
                   </svg>
                 </a>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
           ))}
         </div>
