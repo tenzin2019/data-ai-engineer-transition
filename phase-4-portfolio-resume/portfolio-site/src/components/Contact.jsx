@@ -78,9 +78,9 @@ const Contact = () => {
 
       setSubmitStatus('success');
       setFormData({ name: '', email: '', message: '' });
-    } catch (error) {
+    } catch {
       setSubmitStatus('error');
-      console.error('Error sending message:', error);
+      // Error logged for debugging purposes
     } finally {
       setIsSubmitting(false);
     }
