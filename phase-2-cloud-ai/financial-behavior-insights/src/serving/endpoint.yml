@@ -1,0 +1,4 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: fbinsight-ep-1f4f09
+auth_mode: key
+description: Financial behavior insights endpoint 
