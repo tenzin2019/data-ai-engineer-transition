@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -10,6 +11,16 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleProjectsClick = (e) => {
+    e.preventDefault();
+    setIsProjectsOpen(!isProjectsOpen);
+  };
+
+  const handleProjectLinkClick = (sectionId) => {
+    setIsProjectsOpen(false);
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
@@ -30,7 +41,7 @@ const Navbar = () => {
           
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              {['Home', 'Experience', 'Projects', 'Skills', 'Education', 'Certification', 'Contact'].map((item) => (
+              {['Home', 'About', 'Experience', 'Skills', 'Education', 'Certification', 'Contact'].map((item) => (
                 <a
                   key={item}
                   href={`#${item.toLowerCase()}`}
@@ -39,18 +50,63 @@ const Navbar = () => {
                   {item}
                 </a>
               ))}
+              
+              {/* Projects Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={handleProjectsClick}
+                  className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors duration-200 flex items-center"
+                >
+                  Projects
+                  <svg
+                    className={`ml-1 w-4 h-4 transition-transform duration-200 ${isProjectsOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Dropdown Menu */}
+                {isProjectsOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-xl border border-gray-700 py-2">
+                    <button
+                      onClick={() => handleProjectLinkClick('projects')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                    >
+                      AI Engineering Projects
+                    </button>
+                    <button
+                      onClick={() => handleProjectLinkClick('genai-projects')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
+                    >
+                      GenAI Projects
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
+          {/* Mobile menu button */}
           <div className="md:hidden">
             <button className="text-gray-300 hover:text-white p-2">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
         </div>
       </div>
+      
+      {/* Click outside to close dropdown */}
+      {isProjectsOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsProjectsOpen(false)}
+        />
+      )}
     </nav>
   );
 };
