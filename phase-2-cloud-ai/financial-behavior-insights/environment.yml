@@ -1,0 +1,12 @@
+name: financial-behavior-inference
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - scikit-learn
+      - joblib
+      - numpy
+      - pandas

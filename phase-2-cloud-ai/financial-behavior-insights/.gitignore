@@ -1,0 +1,53 @@
+# Python artifacts
+
+*.py[cod]
+*.egg-info/
+*.so
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+# Virtual environment
+fin-env/
+venv/
+.env
+
+# ML artifacts
+*.joblib
+*.pkl
+*.h5
+*.onnx
+*.tflite
+mlruns/
+
+# Data files
+*.csv
+*.tsv
+*.xlsx
+*.json
+*.parquet
+*.zip
+
+# Ignore all data files except those tracked by DVC
+data//*
+!data/**/*.dvc
+!data/**/README.md
+# DVC config file secrets
+.dvc/config.local
+
+*.log
+*.out
+*.err
+*.tmp
+
+# Docker and DevOps
+*.pid
+*.sock
+.dockerignore
+docker-compose.override.yml
+
+# IDE/editor/system files
+.vscode/
+.idea/
+.DS_Store
+*.swp
