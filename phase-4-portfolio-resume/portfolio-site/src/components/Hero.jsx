@@ -209,7 +209,7 @@ const Hero = () => {
         {/* Scroll Indicator with Enhanced Animation */}
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2">
           <div className="flex flex-col items-center space-y-2">
-            <span className="text-gray-400 text-xs animate-pulse">scroll down to explore</span>
+            <span className="text-gray-400 text-xs animate-scroll-pulse">scroll down to explore</span>
           </div>
         </div>
       </div>
