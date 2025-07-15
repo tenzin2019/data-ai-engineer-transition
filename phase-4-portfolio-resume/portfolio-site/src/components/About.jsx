@@ -12,10 +12,10 @@ const About = () => {
         <div className="text-center mb-16">
           <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl p-8 border border-blue-500/20">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Turning data into business results with practical machine learning.
+              Turning Data into Real Solutions
             </h3>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Bridging AI innovation and business needs to deliver real world impact.
+              Bridging AI innovation and business needs to deliver real-world impact.
             </p>
           </div>
         </div>
@@ -131,7 +131,7 @@ const About = () => {
               <ul className="space-y-2 text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">▸</span>
-                  <span>At the gym, listening to music, or at Sauna (sometimes just catching up on sleep)</span>
+                  <span>At the gym, listening to music, relaxing in the Sauna or sometimes just catching up on sleep</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">▸</span>
