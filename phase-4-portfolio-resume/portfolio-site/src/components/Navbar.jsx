@@ -120,7 +120,7 @@ const Navbar = () => {
                       onClick={() => handleProjectLinkClick('projects')}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-800 transition-colors duration-200"
                     >
-                      AI Engineering Projects
+                      Data Science Project
                     </button>
                     <button
                       onClick={() => handleProjectLinkClick('genai-projects')}
@@ -191,7 +191,7 @@ const Navbar = () => {
                     onClick={() => handleProjectLinkClick('projects')}
                     className="block w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-white transition-colors duration-200"
                   >
-                    AI Engineering Projects
+                    Data Science Projects
                   </button>
                   <button
                     onClick={() => handleProjectLinkClick('genai-projects')}

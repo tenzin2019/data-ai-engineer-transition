@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { validateForm } from '../utils/formValidation';
+import { useState, useRef } from 'react';
+import { validateForm, isSpam } from '../utils/formValidation';
+import ReCAPTCHA from 'react-google-recaptcha';
+
+const RECAPTCHA_SITE_KEY = '6LclOoMrAAAAAGxgT_g-xLFtUlpQ3440dIkv11qJ';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    message: ''
+    message: '',
+    honeypot: '' // for spam protection
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const recaptchaRef = useRef();
 
   const socialLinks = [
     {
@@ -47,6 +53,13 @@ const Contact = () => {
     }
   };
 
+  const handleRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+    if (errors.recaptcha) {
+      setErrors(prev => ({ ...prev, recaptcha: '' }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -61,15 +74,34 @@ const Contact = () => {
       return;
     }
 
+    // Spam check
+    if (isSpam(sanitizedData)) {
+      setSubmitStatus('error');
+      setErrors({ message: 'Submission blocked as spam. Please remove any suspicious content and try again.' });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // reCAPTCHA check
+    if (!recaptchaToken) {
+      setErrors(prev => ({ ...prev, recaptcha: 'Please complete the reCAPTCHA.' }));
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // TODO: Replace with your actual API endpoint
-      const response = await fetch('/api/contact', {
+      // TODO: Replace with your actual Formspree endpoint
+      const response = await fetch('https://formspree.io/f/mdkdonor', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(sanitizedData)
+        body: JSON.stringify({
+          name: sanitizedData.name,
+          email: sanitizedData.email,
+          message: sanitizedData.message,
+          'g-recaptcha-response': recaptchaToken
+        })
       });
 
       if (!response.ok) {
@@ -77,10 +109,11 @@ const Contact = () => {
       }
 
       setSubmitStatus('success');
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({ name: '', email: '', message: '', honeypot: '' });
+      setRecaptchaToken(null);
+      if (recaptchaRef.current) recaptchaRef.current.reset();
     } catch {
       setSubmitStatus('error');
-      // Error logged for debugging purposes
     } finally {
       setIsSubmitting(false);
     }
@@ -115,7 +148,20 @@ const Contact = () => {
               ))}
             </div>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+            {/* Honeypot field (hidden from users) */}
+            <div style={{ display: 'none' }}>
+              <label htmlFor="honeypot">Leave this field empty</label>
+              <input
+                type="text"
+                id="honeypot"
+                name="honeypot"
+                value={formData.honeypot}
+                onChange={handleChange}
+                autoComplete="off"
+                tabIndex="-1"
+              />
+            </div>
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-300">
                 Name
@@ -168,6 +214,18 @@ const Contact = () => {
               />
               {errors.message && (
                 <p className="mt-1 text-sm text-red-500">{errors.message}</p>
+              )}
+            </div>
+            {/* reCAPTCHA widget */}
+            <div>
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={handleRecaptchaChange}
+                theme="dark"
+              />
+              {errors.recaptcha && (
+                <p className="mt-1 text-sm text-red-500">{errors.recaptcha}</p>
               )}
             </div>
             <button

@@ -7,9 +7,9 @@ const Education = () => (
         Education
       </h2>
       <div className="space-y-8">
-        <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
+        <div className="bg-gray-900 rounded-lg p-6 shadow-lg transform transition-all duration-300 hover:scale-105">
           <div className="flex items-center mb-2">
-            <img src="/wsu-logo.png" alt="Western Sydney University" className="w-10 h-10 mr-4" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/f/f0/Western_Sydney_University_Crest.png" alt="Western Sydney University" className="w-10 h-10 mr-4" />
             <div>
               <h3 className="text-xl font-bold text-white">Western Sydney University</h3>
               <p className="text-gray-400">Master's degree, Information Technology / Artificial Intelligence</p>
@@ -18,9 +18,9 @@ const Education = () => (
             </div>
           </div>
         </div>
-        <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
+        <div className="bg-gray-900 rounded-lg p-6 shadow-lg transform transition-all duration-300 hover:scale-105">
           <div className="flex items-center mb-2">
-            <img src="/christ-logo.png" alt="Christ University, Bangalore" className="w-10 h-10 mr-4" />
+            <img src="https://upload.wikimedia.org/wikipedia/en/d/dd/Official_Logo_of_CHRIST%28Deemed_to_be_University%29%2C_bangalore.jpg" alt="Christ University, Bangalore" className="w-10 h-10 mr-4" />
             <div>
               <h3 className="text-xl font-bold text-white">Christ University, Bangalore</h3>
               <p className="text-gray-400">Bachelor of Science - BS, Computer Science</p>

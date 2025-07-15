@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify';
 
-// Form validation and sanitization
+// Stronger email validation
 export const validateEmail = (email) => {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
@@ -11,6 +11,21 @@ export const sanitizeInput = (input) => {
   const sanitized = input.replace(/<[^>]*>/g, '');
   // Remove any script tags
   return sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+};
+
+// Basic anti-spam: block URLs, common spammy keywords, and check honeypot
+export const isSpam = (formData) => {
+  // Honeypot field (should be empty)
+  if (formData.honeypot && formData.honeypot.trim() !== '') return true;
+  // Block URLs in message
+  if (/https?:\/\//i.test(formData.message)) return true;
+  // Block common spammy keywords
+  const spamKeywords = [
+    'viagra', 'free money', 'bitcoin', 'loan', 'casino', 'porn', 'sex', 'escort', 'win big', 'click here', 'buy now', 'credit card', 'investment', 'urgent', 'offer', 'prize', 'guaranteed', 'cheap', 'work from home', 'weight loss', 'miracle', 'earn $', 'make money', 'crypto', 'telegram', 'whatsapp', 'skype', 'call now', 'sms', 'sms to', 'sms:', 'whatsapp:', 'telegram:'
+  ];
+  const msg = formData.message.toLowerCase();
+  if (spamKeywords.some(word => msg.includes(word))) return true;
+  return false;
 };
 
 export const validateForm = (formData) => {
@@ -26,11 +41,10 @@ export const validateForm = (formData) => {
     sanitizedData.name = DOMPurify.sanitize(formData.name.trim());
   }
 
-  // Validate and sanitize email
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Validate and sanitize email (stronger check)
   if (!formData.email.trim()) {
     errors.email = 'Email is required';
-  } else if (!emailRegex.test(formData.email)) {
+  } else if (!validateEmail(formData.email)) {
     errors.email = 'Please enter a valid email address';
   } else {
     sanitizedData.email = DOMPurify.sanitize(formData.email.trim().toLowerCase());
@@ -44,6 +58,9 @@ export const validateForm = (formData) => {
   } else {
     sanitizedData.message = DOMPurify.sanitize(formData.message.trim());
   }
+
+  // Honeypot (should be empty)
+  sanitizedData.honeypot = formData.honeypot || '';
 
   return {
     isValid: Object.keys(errors).length === 0,
