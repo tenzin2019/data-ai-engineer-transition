@@ -1,6 +1,6 @@
 import React from 'react';
 
-const getRandomLevel = () => Math.floor(Math.random() * 45) + 55; // 55-99
+const getRandomLevel = () => Math.floor(Math.random() * 31) + 55; // 55-85
 
 const Skills = () => {
   const skillCategories = [
@@ -36,7 +36,7 @@ const Skills = () => {
   return (
     <section id="skills" className="py-20 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
           Technical Skills
         </h2>
         <p className="text-center text-gray-400 mb-8 max-w-2xl mx-auto">
