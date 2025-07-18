@@ -1,3 +1,28 @@
+"""
+preprocess_banking.py
+
+This script preprocesses the comprehensive banking dataset for downstream machine learning tasks.
+It performs feature engineering, handles missing values, scales and encodes features, and saves processed artifacts.
+
+Usage:
+    python preprocess_banking.py --data_path <input_csv> --output_dir <output_directory>
+
+Environment Variables:
+    BANKING_DATA_PATH: Path to the input CSV file (optional, can be overridden by CLI argument)
+
+Outputs:
+    - Processed features (X.npy)
+    - Target variable (y.npy)
+    - Preprocessing pipeline (preprocessor.joblib)
+    - Processed CSV (Comprehensive_Banking_Database_processed.csv)
+
+MLOps Best Practices:
+    - Uses logging for traceability
+    - Parameterizes file paths and thresholds
+    - Validates input columns and data types
+    - Saves all artifacts for reproducibility
+"""
+
 import os
 import logging
 from typing import Tuple, List, Optional
@@ -14,6 +39,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 def load_data(filepath: str, required_cols: Optional[List[str]] = None) -> pd.DataFrame:
     """
     Loads data from a CSV file and checks for required columns.
+    Args:
+        filepath (str): Path to the CSV file.
+        required_cols (Optional[List[str]]): List of required columns to check for.
+    Returns:
+        pd.DataFrame: Loaded DataFrame.
+    Raises:
+        ValueError: If required columns are missing.
     """
     logging.info(f"Loading data from {filepath}")
     df = pd.read_csv(filepath)
@@ -33,6 +65,15 @@ def engineer_features(
     Adds engineered features to the banking DataFrame, including account age, transaction time features,
     high amount flag, and unusual behavior flag.
     Parameters are configurable for flexibility.
+    Args:
+        df (pd.DataFrame): Input DataFrame.
+        amt_quantile (float): Quantile for high amount flag.
+        min_std (float): Minimum standard deviation for unusual behavior (not used in current version).
+        multiplier (float): Multiplier for unusual behavior (not used in current version).
+    Returns:
+        pd.DataFrame: DataFrame with new features.
+    Raises:
+        ValueError: If date parsing fails.
     """
     logging.info("Engineering features...")
     df = df.copy()
@@ -56,6 +97,12 @@ def get_feature_columns(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
     """
     Returns lists of numeric and categorical columns for preprocessing.
     Treats binary columns as numeric for efficiency.
+    Args:
+        df (pd.DataFrame): Input DataFrame.
+    Returns:
+        Tuple[List[str], List[str]]: Numeric and categorical column names.
+    Raises:
+        KeyError: If required columns are missing.
     """
     numeric_cols = [
         "Age", "Transaction Amount", "Account Balance", "AccountAgeDays",
@@ -70,6 +117,11 @@ def get_feature_columns(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
 def build_preprocessor(numeric_cols: List[str], cat_cols: List[str]) -> ColumnTransformer:
     """
     Builds a preprocessing pipeline for numeric and categorical columns.
+    Args:
+        numeric_cols (List[str]): List of numeric columns.
+        cat_cols (List[str]): List of categorical columns.
+    Returns:
+        ColumnTransformer: Preprocessing pipeline.
     """
     numeric_pipeline = Pipeline([
         ("impute", SimpleImputer(strategy="median")),
@@ -94,6 +146,12 @@ def save_artifacts(
 ):
     """
     Saves processed features, target, preprocessor, and processed CSV to disk.
+    Args:
+        X (np.ndarray): Processed features.
+        y (np.ndarray): Target variable.
+        preprocessor (ColumnTransformer): Preprocessing pipeline.
+        feature_names (List[str]): Names of features.
+        output_dir (str): Directory to save artifacts.
     """
     os.makedirs(output_dir, exist_ok=True)
     np.save(os.path.join(output_dir, "X.npy"), X)
@@ -115,6 +173,12 @@ def main(
 ):
     """
     Main function to run the preprocessing pipeline with configurable parameters.
+    Args:
+        data_path (str): Path to input CSV file.
+        output_dir (str): Directory to save processed artifacts.
+        amt_quantile (float): Quantile for high amount flag.
+        min_std (float): Minimum standard deviation for unusual behavior (not used).
+        multiplier (float): Multiplier for unusual behavior (not used).
     """
     if data_path is None:
         data_path = os.environ.get("BANKING_DATA_PATH", "data/Banking-Dataset/Comprehensive_Banking_Database.csv")

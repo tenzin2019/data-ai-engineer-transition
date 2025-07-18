@@ -1,3 +1,9 @@
+"""
+DEPRECATED: This script is no longer needed for AzureML/MLflow deployment.
+Model serving is now handled by MLflow's pyfunc interface and the custom FinancialBehaviorModel.
+You may keep this script for local testing or reference, but it is not used in production deployment.
+"""
+
 import os
 import json
 import joblib
@@ -17,6 +23,10 @@ feature_names = None
 def init():
     """
     Called once when the endpoint starts up. Loads the model from the Azure ML mount path.
+    Loads the model and feature names into global variables for use in scoring.
+    Raises:
+        FileNotFoundError: If the model file is not found.
+        ValueError: If the loaded model is invalid.
     """
     global model, feature_names
     
@@ -51,14 +61,14 @@ def init():
 
 def validate_input(data: Union[str, Dict], expected_features: int = 12) -> np.ndarray:
     """
-    Validate and preprocess input data.
-    
+    Validate and preprocess input data for prediction.
     Args:
-        data: Input data as string or dict
-        expected_features: Number of expected features
-        
+        data (Union[str, Dict]): Input data as string or dict.
+        expected_features (int): Number of expected features.
     Returns:
-        Preprocessed numpy array
+        np.ndarray: Preprocessed input array.
+    Raises:
+        ValueError: If input is invalid or shape is incorrect.
     """
     try:
         # Parse JSON if string
@@ -96,22 +106,10 @@ def validate_input(data: Union[str, Dict], expected_features: int = 12) -> np.nd
 def run(raw_data: Union[str, Dict]) -> Dict[str, Any]:
     """
     Called per request. Parses incoming JSON, makes a prediction, returns results.
-    
-    Expected input format:
-    {
-        "data": [
-            [feature1, feature2, ..., feature12],
-            [feature1, feature2, ..., feature12],
-            ...
-        ]
-    }
-    
+    Args:
+        raw_data (Union[str, Dict]): Input data for prediction.
     Returns:
-    {
-        "predictions": [0, 1, 0, ...],
-        "probabilities": [0.1, 0.9, 0.2, ...],  # if available
-        "status": "success"
-    }
+        Dict[str, Any]: Prediction results, including status and probabilities if available.
     """
     try:
         logger.info("Processing prediction request")
@@ -156,6 +154,8 @@ def run(raw_data: Union[str, Dict]) -> Dict[str, Any]:
 def health_check() -> Dict[str, Any]:
     """
     Health check endpoint to verify model is loaded and ready.
+    Returns:
+        Dict[str, Any]: Health status and model information.
     """
     try:
         if model is None:

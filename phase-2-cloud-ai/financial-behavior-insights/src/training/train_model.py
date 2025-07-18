@@ -1,3 +1,25 @@
+"""
+train_model.py
+
+Trains a Random Forest model to predict high-amount transactions in the comprehensive banking dataset.
+Supports hyperparameter tuning, evaluation, and optional registration with Azure ML.
+
+Usage:
+    python train_model.py --input-data <processed_csv> [--output-dir <dir>] [--register-model]
+
+Arguments:
+    --input-data: Path to the processed CSV file
+    --output-dir: Directory to save model artifacts (default: outputs/)
+    --register-model: Register the trained model with Azure ML (requires Azure config)
+
+MLOps Best Practices:
+    - Uses logging for traceability
+    - Validates data and environment
+    - Modularizes training, evaluation, and registration
+    - Supports MLflow tracking
+    - Handles errors gracefully
+"""
+
 import argparse
 import os
 import logging
@@ -40,7 +62,11 @@ load_dotenv()
 
 # ---------------- Environment Validation -----------------
 def validate_environment_variables():
-    """Validate required environment variables for Azure ML integration."""
+    """
+    Validate required environment variables for Azure ML integration.
+    Raises:
+        ValueError: If any required environment variable is missing.
+    """
     required_vars = [
         "AZURE_SUBSCRIPTION_ID",
         "AZURE_RESOURCE_GROUP", 
@@ -59,7 +85,14 @@ def validate_environment_variables():
 
 # ---------------- Data Validation -----------------
 def validate_dataframe(df: pd.DataFrame, target_column: str = "HighAmount"):
-    """Validate dataframe for training requirements."""
+    """
+    Validate dataframe for training requirements.
+    Args:
+        df (pd.DataFrame): Input DataFrame.
+        target_column (str): Name of the target column.
+    Raises:
+        ValueError: If validation fails.
+    """
     if df.empty:
         raise ValueError("Dataframe is empty")
     
@@ -82,7 +115,18 @@ def validate_dataframe(df: pd.DataFrame, target_column: str = "HighAmount"):
 
 # ---------------- Data Loading -----------------
 def load_data(data_path: str, target_column: str = "HighAmount", chunk_size: int = None):
-    """Load and validate data with optional chunking for large files."""
+    """
+    Load and validate data with optional chunking for large files.
+    Args:
+        data_path (str): Path to the CSV file.
+        target_column (str): Name of the target column.
+        chunk_size (int): Optional chunk size for large files.
+    Returns:
+        Tuple[pd.DataFrame, pd.Series]: Features and target variable.
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If validation fails.
+    """
     logger.info(f"Loading data from {data_path}")
     
     if not os.path.exists(data_path):
@@ -121,7 +165,20 @@ def load_data(data_path: str, target_column: str = "HighAmount", chunk_size: int
 
 # ---------------- Hyperparameter Tuning -----------------
 def tune_hyperparameters(X, y, n_iter=20, cv=3, random_state=42, n_jobs=-1):
-    """Tune hyperparameters with validation."""
+    """
+    Tune hyperparameters for Random Forest using RandomizedSearchCV.
+    Args:
+        X (pd.DataFrame): Feature matrix.
+        y (pd.Series): Target variable.
+        n_iter (int): Number of iterations for search.
+        cv (int): Number of cross-validation folds.
+        random_state (int): Random seed.
+        n_jobs (int): Number of parallel jobs.
+    Returns:
+        Tuple[RandomForestClassifier, dict, float]: Best estimator, best params, best score.
+    Raises:
+        Exception: If tuning fails.
+    """
     logger.info(f"Starting hyperparameter tuning with {n_iter} iterations")
     
     if X.shape[0] < cv * 2:
@@ -157,7 +214,19 @@ def tune_hyperparameters(X, y, n_iter=20, cv=3, random_state=42, n_jobs=-1):
 
 # ---------------- Model Training & Evaluation -----------------
 def train_and_eval(model, X, y, random_state=42, test_size=0.2):
-    """Train and evaluate model with comprehensive metrics."""
+    """
+    Train and evaluate model with comprehensive metrics.
+    Args:
+        model: The model to train.
+        X (pd.DataFrame): Feature matrix.
+        y (pd.Series): Target variable.
+        random_state (int): Random seed.
+        test_size (float): Proportion of test set.
+    Returns:
+        Tuple[model, dict, tuple]: Trained model, metrics, and test data/results.
+    Raises:
+        Exception: If training or evaluation fails.
+    """
     logger.info("Starting model training and evaluation")
     
     if len(np.unique(y)) < 2:
@@ -191,7 +260,15 @@ def train_and_eval(model, X, y, random_state=42, test_size=0.2):
 
 # ---------------- Model Validation -----------------
 def validate_model(model, X_test, y_test):
-    """Validate model can make predictions and save/load properly."""
+    """
+    Validate model can make predictions and save/load properly.
+    Args:
+        model: Trained model.
+        X_test (pd.DataFrame): Test features.
+        y_test (pd.Series): Test target.
+    Raises:
+        Exception: If validation fails.
+    """
     try:
         # Test prediction
         _ = model.predict(X_test[:5])
@@ -354,6 +431,17 @@ def main(args):
             
             if mlflow_available:
                 mlflow.log_artifact(model_path)
+                # Log with MLflow custom pyfunc
+                from mlflow_model import FinancialBehaviorModel
+                input_example = X.iloc[[0]].copy()
+                signature = mlflow.models.infer_signature(input_example, model.predict(input_example.values))
+                mlflow.pyfunc.log_model(
+                    artifact_path="financial_behavior_model",
+                    python_model=FinancialBehaviorModel(),
+                    artifacts={"model_path": model_path},
+                    input_example=input_example,
+                    signature=signature
+                )
             
             # Save metrics
             metrics_path = os.path.join(args.output_dir, "metrics.json")
