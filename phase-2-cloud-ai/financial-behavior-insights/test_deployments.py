@@ -138,10 +138,23 @@ class DeploymentTester:
             if endpoint.provisioning_state != "Succeeded":
                 logger.warning(f"⚠️ Endpoint is not in Succeeded state: {endpoint.provisioning_state}")
             
-            # Get endpoint key
-            keys = self.ml_client.online_endpoints.get_keys(endpoint_name)
-            # Use the first available key
-            endpoint_key = str(keys)
+            # Get endpoint key using Azure CLI (more reliable)
+            import subprocess
+            result = subprocess.run([
+                'az', 'ml', 'online-endpoint', 'get-credentials',
+                '--name', endpoint_name,
+                '--resource-group', self.resource_group,
+                '--workspace-name', self.workspace_name,
+                '--query', 'primaryKey',
+                '-o', 'tsv'
+            ], capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0:
+                endpoint_key = result.stdout.strip()
+                logger.info(f"✅ Got endpoint key successfully")
+            else:
+                logger.error(f"❌ Failed to get endpoint key: {result.stderr}")
+                raise ValueError("Could not get endpoint key")
             
             # Load model info to get correct feature columns
             model_info_path = "outputs/model_info.json"

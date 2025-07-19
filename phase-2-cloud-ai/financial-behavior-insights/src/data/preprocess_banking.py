@@ -129,7 +129,7 @@ def build_preprocessor(numeric_cols: List[str], cat_cols: List[str]) -> ColumnTr
     ])
     categorical_pipeline = Pipeline([
         ("impute", SimpleImputer(strategy="most_frequent")),
-        ("encode", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
+        ("encode", OneHotEncoder(handle_unknown="ignore", sparse=False))
     ])
     preprocessor = ColumnTransformer([
         ("num", numeric_pipeline, numeric_cols),
@@ -138,7 +138,7 @@ def build_preprocessor(numeric_cols: List[str], cat_cols: List[str]) -> ColumnTr
     return preprocessor
 
 def save_artifacts(
-    X: np.ndarray,
+    X,
     y: np.ndarray,
     preprocessor: ColumnTransformer,
     feature_names: List[str],
@@ -147,21 +147,28 @@ def save_artifacts(
     """
     Saves processed features, target, preprocessor, and processed CSV to disk.
     Args:
-        X (np.ndarray): Processed features.
+        X: Processed features (can be sparse matrix or numpy array).
         y (np.ndarray): Target variable.
         preprocessor (ColumnTransformer): Preprocessing pipeline.
         feature_names (List[str]): Names of features.
         output_dir (str): Directory to save artifacts.
     """
     os.makedirs(output_dir, exist_ok=True)
-    np.save(os.path.join(output_dir, "X.npy"), X)
+    # Convert to dense array if sparse
+    if hasattr(X, 'toarray'):
+        X_dense = X.toarray()
+    else:
+        X_dense = X
+    
+    np.save(os.path.join(output_dir, "X.npy"), X_dense)
     np.save(os.path.join(output_dir, "y.npy"), y)
     joblib.dump(preprocessor, os.path.join(output_dir, "preprocessor.joblib"))
     # Save as CSV (with column names)
-    df_out = pd.DataFrame(X, columns=feature_names)
+    df_out = pd.DataFrame(X_dense, columns=feature_names)
     df_out["HighAmount"] = y
     csv_path = os.path.join(output_dir, "Comprehensive_Banking_Database_processed.csv")
-    df_out.to_csv(csv_path, index=False)
+    if csv_path:
+        df_out.to_csv(csv_path, index=False)
     logging.info(f"Artifacts (including CSV) saved to {output_dir}")
 
 def main(
@@ -196,14 +203,32 @@ def main(
     y = df["HighAmount"]
     preprocessor = build_preprocessor(numeric_cols, cat_cols)
     X_processed = preprocessor.fit_transform(X)
-    # Get new column names (requires sklearn >=1.0 for OneHotEncoder.get_feature_names_out)
+    # Get new column names (compatible with scikit-learn 1.1.3)
     cat_feature_names = []
     enc = preprocessor.named_transformers_['cat']['encode']
-    if hasattr(enc, 'get_feature_names_out'):
+    try:
+        # Try the newer method first
         cat_feature_names = enc.get_feature_names_out(cat_cols)
-    else:
-        cat_feature_names = cat_cols
-    feature_names = numeric_cols + list(cat_feature_names)
+    except (AttributeError, TypeError):
+        # Fallback for older scikit-learn versions
+        try:
+            # For scikit-learn 1.1.3, we need to construct feature names manually
+            cat_feature_names = []
+            for i, col in enumerate(cat_cols):
+                categories = enc.categories_[i]
+                for cat in categories:
+                    cat_feature_names.append(f"{col}_{cat}")
+        except:
+            # Final fallback
+            cat_feature_names = [f"{col}_encoded" for col in cat_cols]
+    
+    # Always generate the correct number of feature names
+    feature_names = [f"feature_{i}" for i in range(X_processed.shape[1])]
+    
+    # Log feature information
+    logging.info(f"Processed data shape: {X_processed.shape}")
+    logging.info(f"Number of features: {len(feature_names)}")
+    
     save_artifacts(X_processed, y.to_numpy(), preprocessor, feature_names, output_dir)
     logging.info("Preprocessing complete. Processed data, CSV, and preprocessor saved.")
 
