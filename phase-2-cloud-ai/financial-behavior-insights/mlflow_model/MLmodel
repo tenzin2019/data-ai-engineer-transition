@@ -1,0 +1,40 @@
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.12
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.0
+is_signature_from_type_hint: false
+mlflow_version: 2.22.1
+model_size_bytes: 91033
+model_uuid: 594a57666ef344ab8163f33555edc97b
+prompts: null
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "Age", "required": true}, {"type": "double",
+    "name": "Transaction Amount", "required": true}, {"type": "double", "name": "Account
+    Balance", "required": true}, {"type": "double", "name": "AccountAgeDays", "required":
+    true}, {"type": "double", "name": "TransactionHour", "required": true}, {"type":
+    "double", "name": "TransactionDayOfWeek", "required": true}, {"type": "double",
+    "name": "Transaction Type_Deposit", "required": true}, {"type": "double", "name":
+    "Transaction Type_Transfer", "required": true}, {"type": "double", "name": "Transaction
+    Type_Withdrawal", "required": true}, {"type": "double", "name": "Gender_Female",
+    "required": true}, {"type": "double", "name": "Gender_Male", "required": true},
+    {"type": "double", "name": "Gender_Other", "required": true}]'
+  outputs: '[{"type": "double", "name": "prediction", "required": true}, {"type":
+    "double", "name": "probability", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-07-19 07:16:24.451771'

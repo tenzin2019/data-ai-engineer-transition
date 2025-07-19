@@ -39,7 +39,7 @@ test:
 
 # Deploy model to Azure ML
 deploy:
-	python3 src/serving/deploy_manager.py --action deploy --model-name financial-behavior-model-optimized
+	python3 src/serving/deploy_manager.py --action deploy --model-name financial-behavior-model-fixed
 
 # Register model in MLflow and Azure ML
 register:

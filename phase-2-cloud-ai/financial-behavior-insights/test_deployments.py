@@ -100,7 +100,7 @@ class DeploymentTester:
         logger.info("=" * 60)
         
         try:
-            endpoint_name = "financial-behavior-endpoint"
+            endpoint_name = "fin-behavior-ep-fixed"
             
             # Get endpoint details
             endpoint = self.ml_client.online_endpoints.get(endpoint_name)

@@ -63,7 +63,7 @@ class DeploymentManager:
     def deploy_model(
         self,
         model_name: str,
-        endpoint_name: str = "financial-behavior-endpoint",
+        endpoint_name: str = "fin-behavior-ep-fixed",
         deployment_name: str = "blue",
         instance_type: str = "Standard_F4s_v2",
         instance_count: int = 1
@@ -96,72 +96,152 @@ class DeploymentManager:
             endpoint_result = self.ml_client.online_endpoints.begin_create_or_update(endpoint).result()
             logger.info(f"✅ Endpoint '{endpoint_name}' ready")
             
-            # Step 2: Get model information and use MLflow model
+            # Step 2: Register MLflow model in Azure ML and use Azure ML model URI
             try:
-                # Use MLflow model URI instead of Azure ML model
-                model_uri = f"models:/{model_name}@latest"
-                logger.info(f"Using MLflow model: {model_uri}")
+                # First, register the MLflow model in Azure ML if not already registered
+                from azure.ai.ml.entities import Model
+                
+                # Check if model already exists in Azure ML
+                try:
+                    azure_model = self.ml_client.models.get(model_name, label="latest")
+                    logger.info(f"Model '{model_name}' already exists in Azure ML (version: {azure_model.version})")
+                    model_uri = f"azureml:{model_name}:{azure_model.version}"
+                except:
+                    # Register the MLflow model in Azure ML
+                    logger.info(f"Registering MLflow model '{model_name}' in Azure ML...")
+                    
+                    # Use the local MLflow model directory
+                    mlflow_model_path = "mlflow_model"
+                    if not os.path.exists(mlflow_model_path):
+                        logger.error(f"MLflow model directory not found: {mlflow_model_path}")
+                        return {"success": False, "error": f"MLflow model not found: {mlflow_model_path}"}
+                    
+                    azure_model = Model(
+                        path=mlflow_model_path,
+                        name=model_name,
+                        description="Financial behavior prediction model",
+                        type="mlflow_model"
+                    )
+                    
+                    registered_model = self.ml_client.models.create_or_update(azure_model)
+                    model_uri = f"azureml:{model_name}:{registered_model.version}"
+                    logger.info(f"Model registered in Azure ML: {model_uri}")
+                
+                logger.info(f"Using Azure ML model: {model_uri}")
             except Exception as e:
-                logger.error(f"Model '{model_name}' not found: {e}")
-                return {"success": False, "error": f"Model not found: {e}"}
+                logger.error(f"Model registration/retrieval failed: {e}")
+                return {"success": False, "error": f"Model error: {e}"}
             
-            # Step 3: Create deployment
+            # Step 3: Create deployment using Azure CLI (more reliable)
             logger.info(f"Creating deployment: {deployment_name}")
             
-            deployment = ManagedOnlineDeployment(
-                name=deployment_name,
-                endpoint_name=endpoint_name,
-                model=model_uri,
-                instance_type=instance_type,
-                instance_count=instance_count,
-                request_timeout_ms=90000,
-                max_concurrent_requests_per_instance=4
-            )
+            # Create deployment YAML configuration with correct schema
+            deployment_config = {
+                "name": deployment_name,
+                "endpoint_name": endpoint_name,
+                "model": model_uri,
+                "instance_type": instance_type,
+                "instance_count": instance_count,
+                "environment": "azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest"
+            }
             
-            # Start deployment
-            deployment_operation = self.ml_client.online_deployments.begin_create_or_update(deployment)
-            logger.info("Deployment started. Monitoring progress...")
+            # Use Azure CLI for deployment
+            import subprocess
+            import tempfile
+            import yaml
             
-            # Monitor deployment
-            max_wait_time = 1800  # 30 minutes
-            start_time = time.time()
+            # Create temporary YAML file
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+                yaml.dump(deployment_config, f)
+                yaml_file = f.name
             
-            while time.time() - start_time < max_wait_time:
-                try:
-                    deployment_status = self.ml_client.online_deployments.get(deployment_name, endpoint_name)
-                    logger.info(f"Deployment status: {deployment_status.provisioning_state}")
-                    
-                    if deployment_status.provisioning_state == "Succeeded":
-                        break
-                    elif deployment_status.provisioning_state == "Failed":
-                        self._get_deployment_logs(deployment_name, endpoint_name)
-                        return {"success": False, "error": "Deployment failed"}
-                    
-                    time.sleep(30)  # Check every 30 seconds
-                    
-                except Exception as e:
-                    logger.warning(f"Status check error: {e}")
-                    time.sleep(30)
-            
-            deployment_result = deployment_operation.result()
-            
-            if deployment_result.provisioning_state == "Succeeded":
-                # Route traffic to new deployment
-                endpoint.traffic = {deployment_name: 100}
-                self.ml_client.online_endpoints.begin_create_or_update(endpoint).result()
+            try:
+                # Deploy using Azure CLI
+                cmd = [
+                    "az", "ml", "online-deployment", "create",
+                    "--endpoint-name", endpoint_name,
+                    "--name", deployment_name,
+                    "--file", yaml_file,
+                    "--resource-group", self.resource_group,
+                    "--workspace-name", self.workspace_name
+                ]
                 
-                logger.info("✅ Deployment successful!")
-                return {
-                    "success": True,
-                    "endpoint_name": endpoint_name,
-                    "deployment_name": deployment_name,
-                    "model_name": model_name,
-                    "model_uri": model_uri,
-                    "scoring_uri": endpoint_result.scoring_uri
-                }
-            else:
-                self._get_deployment_logs(deployment_name, endpoint_name)
-                return {"success": False, "error": f"Deployment failed: {deployment_result.provisioning_state}"}
+                logger.info("Starting deployment with Azure CLI...")
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+                
+                if result.returncode == 0:
+                    logger.info("✅ Deployment started successfully")
+                else:
+                    logger.error(f"❌ Deployment failed: {result.stderr}")
+                    return {"success": False, "error": result.stderr}
+                    
+            finally:
+                # Clean up temporary file
+                os.unlink(yaml_file)
+            
+            # Monitor deployment status
+            logger.info("Monitoring deployment status...")
+            time.sleep(60)  # Wait for deployment to start
+            
+            # Check deployment status using Azure CLI
+            status_cmd = [
+                "az", "ml", "online-deployment", "show",
+                "--endpoint-name", endpoint_name,
+                "--name", deployment_name,
+                "--resource-group", self.resource_group,
+                "--workspace-name", self.workspace_name
+            ]
+            
+            try:
+                result = subprocess.run(status_cmd, capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                    import json
+                    deployment_info = json.loads(result.stdout)
+                    state = deployment_info.get("provisioning_state", "Unknown")
+                    logger.info(f"Deployment state: {state}")
+                    
+                    if state == "Succeeded":
+                        # Route traffic to new deployment
+                        traffic_cmd = [
+                            "az", "ml", "online-endpoint", "update",
+                            "--name", endpoint_name,
+                            "--traffic", f"{deployment_name}=100",
+                            "--resource-group", self.resource_group,
+                            "--workspace-name", self.workspace_name
+                        ]
+                        
+                        traffic_result = subprocess.run(traffic_cmd, capture_output=True, text=True, timeout=30)
+                        if traffic_result.returncode == 0:
+                            logger.info("✅ Deployment successful and traffic routed!")
+                            return {
+                                "success": True,
+                                "endpoint_name": endpoint_name,
+                                "deployment_name": deployment_name,
+                                "model_name": model_name,
+                                "model_uri": model_uri,
+                                "state": state
+                            }
+                        else:
+                            logger.warning(f"Traffic routing failed: {traffic_result.stderr}")
+                            return {
+                                "success": True,
+                                "endpoint_name": endpoint_name,
+                                "deployment_name": deployment_name,
+                                "model_name": model_name,
+                                "model_uri": model_uri,
+                                "state": state,
+                                "warning": "Traffic routing failed"
+                            }
+                    else:
+                        logger.error(f"❌ Deployment failed with state: {state}")
+                        return {"success": False, "error": f"Deployment failed: {state}"}
+                else:
+                    logger.error(f"❌ Failed to get deployment status: {result.stderr}")
+                    return {"success": False, "error": f"Status check failed: {result.stderr}"}
+                    
+            except Exception as e:
+                logger.error(f"❌ Deployment monitoring failed: {e}")
+                return {"success": False, "error": str(e)}
                 
         except Exception as e:
             logger.error(f"Deployment failed: {e}")
@@ -169,7 +249,7 @@ class DeploymentManager:
     
     def test_deployment(
         self,
-        endpoint_name: str = "financial-behavior-endpoint",
+        endpoint_name: str = "fin-behavior-ep-fixed",
         n_samples: int = 5
     ) -> Dict[str, Any]:
         """
@@ -411,7 +491,7 @@ def main():
                        help="Action to perform")
     parser.add_argument("--model-name", default="financial-behavior-model-optimized",
                        help="Model name for deployment")
-    parser.add_argument("--endpoint-name", default="financial-behavior-endpoint",
+    parser.add_argument("--endpoint-name", default="fin-behavior-ep-fixed",
                        help="Endpoint name")
     parser.add_argument("--deployment-name", default="blue",
                        help="Deployment name")
