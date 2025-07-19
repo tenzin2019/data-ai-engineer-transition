@@ -436,7 +436,7 @@ def main(args):
                 from mlflow.pyfunc.model import PythonModel
                 
                 class FinancialBehaviorModel(PythonModel):
-                    """Self-contained MLflow model wrapper for deployment."""
+                    """Self-contained MLflow model wrapper for deployment with current environment compatibility."""
                     
                     def load_context(self, context):
                         import joblib

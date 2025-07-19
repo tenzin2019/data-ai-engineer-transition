@@ -7,47 +7,54 @@
 help:
 	@echo "MLOps Workflow Commands:"
 	@echo "  make install          - Install dependencies"
+	@echo "  make create-env       - Create conda environment"
+	@echo "  make update-env       - Update conda environment"
 	@echo "  make train           - Train model only"
-	@echo "  make test            - Test existing model locally"
-	@echo "  make deploy          - Deploy to Azure (with approval)"
-	@echo "  make workflow        - Run complete workflow"
-	@echo "  make workflow-dev    - Run development workflow (no Azure)"
-	@echo "  make workflow-ci     - Run CI workflow (auto-approve)"
+	@echo "  make test            - Test all deployments"
+	@echo "  make deploy          - Deploy model to Azure ML"
+	@echo "  make register        - Register model in MLflow and Azure ML"
+	@echo "  make status          - Check deployment status"
 	@echo "  make clean           - Clean artifacts and logs"
 	@echo "  make check-env       - Check environment setup"
 
-# Install dependencies
+# Install dependencies (updated with specific versions)
 install:
 	pip install -r requirements.txt
-	pip install azure-ai-ml azure-identity pyyaml
+
+# Create conda environment with consistent versions
+create-env:
+	conda env create -f environment.yml
+
+# Update current environment to match requirements
+update-env:
+	conda env update -f environment.yml
 
 # Train model only
 train:
-	python3 workflows/ml_workflow.py --skip-local-testing --skip-azure-deployment
+	python3 src/training/train_model.py --input-data data/processed/Comprehensive_Banking_Database_processed.csv --output-dir outputs/
 
-# Test existing model locally
+# Test all deployments
 test:
-	python3 workflows/ml_workflow.py --skip-training --skip-azure-deployment
+	python3 test_deployments.py
 
-# Deploy to Azure with user approval
+# Deploy model to Azure ML
 deploy:
-	python3 workflows/ml_workflow.py --skip-training --skip-local-testing
+	python3 src/serving/deploy_manager.py --action deploy --model-name financial-behavior-model-optimized
 
-# Run complete workflow with user approval
+# Register model in MLflow and Azure ML
+register:
+	python3 src/utils/model_registry.py --action register --model-path ./outputs --model-name financial-behavior-model
+
+# Check deployment status
+status:
+	python3 src/serving/deploy_manager.py --action status
+
+# Complete workflow (train, register, deploy, test)
 workflow:
-	python3 workflows/ml_workflow.py --config workflows/config.yaml
-
-# Development workflow (no Azure deployment)
-workflow-dev:
-	python3 workflows/ml_workflow.py --skip-azure-deployment
-
-# CI/CD workflow (auto-approve Azure deployment)
-workflow-ci:
-	python3 workflows/ml_workflow.py --auto-approve
-
-# Blue-green deployment
-blue-green-deploy:
-	python3 workflows/blue_green_deploy.py --model-uri models:/financial-behavior-model@production
+	make train
+	make register
+	make deploy
+	make test
 
 # Clean artifacts and logs
 clean:
@@ -73,27 +80,18 @@ check-env:
 
 # Quick validation
 validate:
-	python3 src/serving/test_local.py --skip-performance
+	python3 test_deployments.py
 
 # MLflow UI
 mlflow-ui:
 	mlflow ui --backend-store-uri sqlite:///mlflow.db
 
 # Show workflow status
-status:
+workflow-status:
 	@echo "Recent workflow artifacts:"
 	@ls -la workflow_artifacts/ 2>/dev/null || echo "No workflow artifacts found"
 	@echo "\nMLflow experiments:"
 	@ls -la mlruns/ 2>/dev/null || echo "No MLflow runs found"
-
-# Example workflows
-example-local:
-	@echo "Running example local workflow..."
-	python3 workflows/ml_workflow.py --skip-azure-deployment --input-data data/processed/Comprehensive_Banking_Database_processed.csv
-
-example-azure:
-	@echo "Running example Azure workflow..."
-	python3 workflows/ml_workflow.py --config workflows/config.yaml
 
 # Development commands
 dev-setup:
@@ -105,4 +103,4 @@ dev-setup:
 prod-deploy:
 	@echo "Deploying to production..."
 	@read -p "Are you sure you want to deploy to production? (y/N): " confirm && [ "$$confirm" = "y" ]
-	python3 workflows/ml_workflow.py --config workflows/config.yaml --auto-approve 
+	make workflow 

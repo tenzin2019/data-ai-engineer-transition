@@ -1,0 +1,524 @@
+#!/usr/bin/env python3
+"""
+deploy_manager.py
+
+Comprehensive deployment manager for Azure ML.
+Handles model deployment, endpoint management, and testing.
+
+Usage:
+    python deploy_manager.py --action deploy --model-name financial-behavior-model
+    python deploy_manager.py --action test --endpoint-name financial-behavior-endpoint
+    python deploy_manager.py --action status
+"""
+
+import os
+import sys
+import logging
+import argparse
+import time
+import json
+import requests
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+from dotenv import load_dotenv
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+class DeploymentManager:
+    """Comprehensive deployment manager for Azure ML."""
+    
+    def __init__(self):
+        """Initialize the deployment manager."""
+        load_dotenv()
+        
+        # Azure ML configuration
+        self.subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+        self.resource_group = os.getenv("AZURE_RESOURCE_GROUP")
+        self.workspace_name = os.getenv("AZURE_WORKSPACE_NAME")
+        
+        if not all([self.subscription_id, self.resource_group, self.workspace_name]):
+            raise ValueError("Missing required Azure ML environment variables")
+        
+        # Initialize Azure ML client
+        try:
+            from azure.ai.ml import MLClient
+            from azure.identity import DefaultAzureCredential
+            
+            self.ml_client = MLClient(
+                DefaultAzureCredential(),
+                subscription_id=self.subscription_id,
+                resource_group_name=self.resource_group,
+                workspace_name=self.workspace_name
+            )
+            logger.info(f"Connected to Azure ML workspace: {self.workspace_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Azure ML client: {e}")
+            raise
+    
+    def deploy_model(
+        self,
+        model_name: str,
+        endpoint_name: str = "financial-behavior-endpoint",
+        deployment_name: str = "blue",
+        instance_type: str = "Standard_F4s_v2",
+        instance_count: int = 1
+    ) -> Dict[str, Any]:
+        """
+        Deploy model to Azure ML endpoint.
+        
+        Args:
+            model_name: Name of the model to deploy
+            endpoint_name: Name of the endpoint
+            deployment_name: Name of the deployment
+            instance_type: Azure VM instance type
+            instance_count: Number of instances
+            
+        Returns:
+            Dict with deployment results
+        """
+        try:
+            from azure.ai.ml.entities import ManagedOnlineEndpoint, ManagedOnlineDeployment
+            from azure.ai.ml.constants import AssetTypes
+            
+            # Step 1: Create or update endpoint
+            logger.info(f"Creating/updating endpoint: {endpoint_name}")
+            endpoint = ManagedOnlineEndpoint(
+                name=endpoint_name,
+                description="Financial behavior prediction endpoint",
+                auth_mode="key"
+            )
+            
+            endpoint_result = self.ml_client.online_endpoints.begin_create_or_update(endpoint).result()
+            logger.info(f"✅ Endpoint '{endpoint_name}' ready")
+            
+            # Step 2: Get model information and use MLflow model
+            try:
+                # Use MLflow model URI instead of Azure ML model
+                model_uri = f"models:/{model_name}@latest"
+                logger.info(f"Using MLflow model: {model_uri}")
+            except Exception as e:
+                logger.error(f"Model '{model_name}' not found: {e}")
+                return {"success": False, "error": f"Model not found: {e}"}
+            
+            # Step 3: Create deployment
+            logger.info(f"Creating deployment: {deployment_name}")
+            
+            deployment = ManagedOnlineDeployment(
+                name=deployment_name,
+                endpoint_name=endpoint_name,
+                model=model_uri,
+                instance_type=instance_type,
+                instance_count=instance_count,
+                request_timeout_ms=90000,
+                max_concurrent_requests_per_instance=4
+            )
+            
+            # Start deployment
+            deployment_operation = self.ml_client.online_deployments.begin_create_or_update(deployment)
+            logger.info("Deployment started. Monitoring progress...")
+            
+            # Monitor deployment
+            max_wait_time = 1800  # 30 minutes
+            start_time = time.time()
+            
+            while time.time() - start_time < max_wait_time:
+                try:
+                    deployment_status = self.ml_client.online_deployments.get(deployment_name, endpoint_name)
+                    logger.info(f"Deployment status: {deployment_status.provisioning_state}")
+                    
+                    if deployment_status.provisioning_state == "Succeeded":
+                        break
+                    elif deployment_status.provisioning_state == "Failed":
+                        self._get_deployment_logs(deployment_name, endpoint_name)
+                        return {"success": False, "error": "Deployment failed"}
+                    
+                    time.sleep(30)  # Check every 30 seconds
+                    
+                except Exception as e:
+                    logger.warning(f"Status check error: {e}")
+                    time.sleep(30)
+            
+            deployment_result = deployment_operation.result()
+            
+            if deployment_result.provisioning_state == "Succeeded":
+                # Route traffic to new deployment
+                endpoint.traffic = {deployment_name: 100}
+                self.ml_client.online_endpoints.begin_create_or_update(endpoint).result()
+                
+                logger.info("✅ Deployment successful!")
+                return {
+                    "success": True,
+                    "endpoint_name": endpoint_name,
+                    "deployment_name": deployment_name,
+                    "model_name": model_name,
+                    "model_uri": model_uri,
+                    "scoring_uri": endpoint_result.scoring_uri
+                }
+            else:
+                self._get_deployment_logs(deployment_name, endpoint_name)
+                return {"success": False, "error": f"Deployment failed: {deployment_result.provisioning_state}"}
+                
+        except Exception as e:
+            logger.error(f"Deployment failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def test_deployment(
+        self,
+        endpoint_name: str = "financial-behavior-endpoint",
+        n_samples: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Test deployment with sample data.
+        
+        Args:
+            endpoint_name: Name of the endpoint to test
+            n_samples: Number of test samples
+            
+        Returns:
+            Dict with test results
+        """
+        try:
+            # Get endpoint details
+            endpoint = self.ml_client.online_endpoints.get(endpoint_name)
+            logger.info(f"Testing endpoint: {endpoint.scoring_uri}")
+            
+            # Get endpoint key
+            keys = self.ml_client.online_endpoints.get_keys(endpoint_name)
+            endpoint_key = keys.primary_key if hasattr(keys, 'primary_key') else keys.key1
+            
+            # Create test data
+            test_data = self._create_test_data(n_samples)
+            logger.info(f"Created test data with shape: {test_data.shape}")
+            
+            # Convert to JSON for REST API call
+            payload = {
+                "data": test_data.to_dict('records')
+            }
+            
+            # Make prediction request
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {endpoint_key}'
+            }
+            
+            logger.info("Making prediction request...")
+            start_time = time.time()
+            response = requests.post(
+                f"{endpoint.scoring_uri}",
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            request_time = time.time() - start_time
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"✅ Prediction successful in {request_time:.2f}s")
+                logger.info(f"Response: {result}")
+                
+                return {
+                    "success": True,
+                    "response_time": request_time,
+                    "status_code": response.status_code,
+                    "predictions": result,
+                    "test_samples": n_samples
+                }
+            else:
+                logger.error(f"❌ Prediction failed: {response.status_code} - {response.text}")
+                return {
+                    "success": False,
+                    "status_code": response.status_code,
+                    "error": response.text
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Deployment test failed: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def get_deployment_status(self) -> Dict[str, Any]:
+        """Get current deployment status."""
+        try:
+            # Get all endpoints
+            endpoints = list(self.ml_client.online_endpoints.list())
+            
+            status = {
+                "endpoints": [],
+                "total_endpoints": len(endpoints),
+                "total_deployments": 0
+            }
+            
+            for endpoint in endpoints:
+                endpoint_info = {
+                    "name": endpoint.name,
+                    "state": endpoint.provisioning_state,
+                    "scoring_uri": endpoint.scoring_uri,
+                    "deployments": []
+                }
+                
+                # Get deployments for this endpoint
+                deployments = list(self.ml_client.online_deployments.list(endpoint.name))
+                endpoint_info["deployments"] = [
+                    {
+                        "name": dep.name,
+                        "state": dep.provisioning_state,
+                        "model": dep.model,
+                        "instance_type": dep.instance_type,
+                        "instance_count": dep.instance_count
+                    }
+                    for dep in deployments
+                ]
+                
+                status["endpoints"].append(endpoint_info)
+                status["total_deployments"] += len(deployments)
+            
+            return status
+            
+        except Exception as e:
+            logger.error(f"Failed to get deployment status: {e}")
+            return {"error": str(e)}
+    
+    def delete_deployment(
+        self,
+        endpoint_name: str,
+        deployment_name: str
+    ) -> Dict[str, bool]:
+        """
+        Delete a deployment.
+        
+        Args:
+            endpoint_name: Name of the endpoint
+            deployment_name: Name of the deployment to delete
+            
+        Returns:
+            Dict with deletion result
+        """
+        try:
+            logger.info(f"Deleting deployment '{deployment_name}' from endpoint '{endpoint_name}'")
+            
+            # Delete deployment
+            self.ml_client.online_deployments.begin_delete(
+                name=deployment_name,
+                endpoint_name=endpoint_name
+            ).result()
+            
+            logger.info(f"✅ Deployment '{deployment_name}' deleted successfully")
+            return {"success": True}
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to delete deployment: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def delete_endpoint(self, endpoint_name: str) -> Dict[str, bool]:
+        """
+        Delete an endpoint and all its deployments.
+        
+        Args:
+            endpoint_name: Name of the endpoint to delete
+            
+        Returns:
+            Dict with deletion result
+        """
+        try:
+            logger.info(f"Deleting endpoint '{endpoint_name}' and all deployments")
+            
+            # Delete endpoint (this will also delete all deployments)
+            self.ml_client.online_endpoints.begin_delete(endpoint_name).result()
+            
+            logger.info(f"✅ Endpoint '{endpoint_name}' deleted successfully")
+            return {"success": True}
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to delete endpoint: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def _create_test_data(self, n_samples: int = 5) -> pd.DataFrame:
+        """Create test data with correct feature names and types."""
+        # Use the actual feature names expected by the model
+        feature_names = [
+            'Age', 'Transaction Amount', 'Account Balance', 'AccountAgeDays',
+            'TransactionHour', 'TransactionDayOfWeek', 'Transaction Type_Deposit',
+            'Transaction Type_Transfer', 'Transaction Type_Withdrawal',
+            'Gender_Female', 'Gender_Male', 'Gender_Other'
+        ]
+        
+        np.random.seed(42)
+        data = {}
+        
+        for feature in feature_names:
+            if feature in ['Transaction Type_Deposit', 'Transaction Type_Transfer', 'Transaction Type_Withdrawal', 
+                          'Gender_Female', 'Gender_Male', 'Gender_Other']:
+                # Binary features (0 or 1) as float
+                data[feature] = np.random.choice([0.0, 1.0], n_samples)
+            elif feature in ['TransactionHour']:
+                # Hour of day (0-23) as float
+                data[feature] = np.random.randint(0, 24, n_samples).astype(float)
+            elif feature in ['TransactionDayOfWeek']:
+                # Day of week (0-6) as float
+                data[feature] = np.random.randint(0, 7, n_samples).astype(float)
+            elif feature in ['AccountAgeDays']:
+                # Account age in days (0-3650, about 10 years) as float
+                data[feature] = np.random.randint(0, 3650, n_samples).astype(float)
+            elif feature in ['Age']:
+                # Age (18-80) as float
+                data[feature] = np.random.randint(18, 81, n_samples).astype(float)
+            else:
+                # Continuous features (Transaction Amount, Account Balance)
+                data[feature] = np.random.exponential(1000, n_samples)  # Realistic financial amounts
+        
+        # Ensure all columns are float64
+        df = pd.DataFrame(data)
+        for col in df.columns:
+            df[col] = df[col].astype('float64')
+        
+        return df
+    
+    def _get_deployment_logs(self, deployment_name: str, endpoint_name: str):
+        """Get deployment logs for troubleshooting."""
+        try:
+            logger.info("Retrieving deployment logs...")
+            logs = self.ml_client.online_deployments.get_logs(
+                name=deployment_name,
+                endpoint_name=endpoint_name,
+                lines=100
+            )
+            logger.error(f"Deployment logs:\n{logs}")
+            
+            # Also try to get storage initializer logs
+            try:
+                storage_logs = self.ml_client.online_deployments.get_logs(
+                    name=deployment_name,
+                    endpoint_name=endpoint_name,
+                    lines=100,
+                    container_type="storage-initializer"
+                )
+                logger.error(f"Storage initializer logs:\n{storage_logs}")
+            except:
+                pass
+                
+        except Exception as e:
+            logger.warning(f"Could not retrieve logs: {e}")
+
+def main():
+    """Main function for command-line usage."""
+    parser = argparse.ArgumentParser(description="Azure ML Deployment Manager")
+    parser.add_argument("--action", required=True,
+                       choices=["deploy", "test", "status", "delete-deployment", "delete-endpoint"],
+                       help="Action to perform")
+    parser.add_argument("--model-name", default="financial-behavior-model-optimized",
+                       help="Model name for deployment")
+    parser.add_argument("--endpoint-name", default="financial-behavior-endpoint",
+                       help="Endpoint name")
+    parser.add_argument("--deployment-name", default="blue",
+                       help="Deployment name")
+    parser.add_argument("--instance-type", default="Standard_F4s_v2",
+                       help="Azure VM instance type")
+    parser.add_argument("--instance-count", type=int, default=1,
+                       help="Number of instances")
+    parser.add_argument("--test-samples", type=int, default=5,
+                       help="Number of test samples")
+    
+    args = parser.parse_args()
+    
+    try:
+        manager = DeploymentManager()
+        
+        if args.action == "deploy":
+            logger.info("=" * 60)
+            logger.info("DEPLOYING MODEL TO AZURE ML")
+            logger.info("=" * 60)
+            
+            result = manager.deploy_model(
+                model_name=args.model_name,
+                endpoint_name=args.endpoint_name,
+                deployment_name=args.deployment_name,
+                instance_type=args.instance_type,
+                instance_count=args.instance_count
+            )
+            
+            if result["success"]:
+                logger.info("🎉 DEPLOYMENT SUCCESSFUL!")
+                logger.info(f"Endpoint: {result['endpoint_name']}")
+                logger.info(f"Deployment: {result['deployment_name']}")
+                logger.info(f"Model: {result['model_name']}:{result['model_version']}")
+                logger.info(f"Scoring URI: {result['scoring_uri']}")
+            else:
+                logger.error(f"❌ DEPLOYMENT FAILED: {result.get('error', 'Unknown error')}")
+                sys.exit(1)
+        
+        elif args.action == "test":
+            logger.info("=" * 60)
+            logger.info("TESTING DEPLOYMENT")
+            logger.info("=" * 60)
+            
+            result = manager.test_deployment(
+                endpoint_name=args.endpoint_name,
+                n_samples=args.test_samples
+            )
+            
+            if result["success"]:
+                logger.info("✅ DEPLOYMENT TEST SUCCESSFUL!")
+                logger.info(f"Response time: {result['response_time']:.2f}s")
+                logger.info(f"Test samples: {result['test_samples']}")
+            else:
+                logger.error(f"❌ DEPLOYMENT TEST FAILED: {result.get('error', 'Unknown error')}")
+                sys.exit(1)
+        
+        elif args.action == "status":
+            logger.info("=" * 60)
+            logger.info("DEPLOYMENT STATUS")
+            logger.info("=" * 60)
+            
+            status = manager.get_deployment_status()
+            
+            if "error" in status:
+                logger.error(f"❌ Failed to get status: {status['error']}")
+                sys.exit(1)
+            
+            logger.info(f"Total endpoints: {status['total_endpoints']}")
+            logger.info(f"Total deployments: {status['total_deployments']}")
+            
+            for endpoint in status["endpoints"]:
+                logger.info(f"\nEndpoint: {endpoint['name']} ({endpoint['state']})")
+                if endpoint['deployments']:
+                    for dep in endpoint['deployments']:
+                        logger.info(f"  └─ {dep['name']} ({dep['state']}) - {dep['model']}")
+                else:
+                    logger.info("  └─ No deployments")
+        
+        elif args.action == "delete-deployment":
+            logger.info("=" * 60)
+            logger.info("DELETING DEPLOYMENT")
+            logger.info("=" * 60)
+            
+            result = manager.delete_deployment(args.endpoint_name, args.deployment_name)
+            
+            if result["success"]:
+                logger.info("✅ Deployment deleted successfully")
+            else:
+                logger.error(f"❌ Failed to delete deployment: {result.get('error', 'Unknown error')}")
+                sys.exit(1)
+        
+        elif args.action == "delete-endpoint":
+            logger.info("=" * 60)
+            logger.info("DELETING ENDPOINT")
+            logger.info("=" * 60)
+            
+            result = manager.delete_endpoint(args.endpoint_name)
+            
+            if result["success"]:
+                logger.info("✅ Endpoint deleted successfully")
+            else:
+                logger.error(f"❌ Failed to delete endpoint: {result.get('error', 'Unknown error')}")
+                sys.exit(1)
+        
+    except Exception as e:
+        logger.error(f"Operation failed: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main() 

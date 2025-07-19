@@ -80,8 +80,9 @@ class WorkflowConfig:
     # Azure deployment
     endpoint_name: str = "financial-behavior-endpoint"
     deployment_name: str = "blue"
-    instance_type: str = "Standard_F2s_v2"
+    instance_type: str = "Standard_F4s_v2"  # Updated default for better performance
     instance_count: int = 1
+    use_optimized_deployment: bool = True  # Use optimized deployment script by default
     
     # Workflow control
     skip_training: bool = False
@@ -305,12 +306,24 @@ class WorkflowOrchestrator:
                 logger.info("Deployment cancelled by user")
                 return False
         
-        deploy_cmd = [
-            sys.executable, "src/serving/deploy_model.py",
-            "--model-uri", self.model_uri,
-            "--deployment-type", "azure",
-            "--endpoint-name", self.config.endpoint_name
-        ]
+        # Choose deployment script based on configuration
+        if getattr(self.config, 'use_optimized_deployment', False):
+            logger.info("Using optimized deployment script for better reliability")
+            deploy_cmd = [
+                sys.executable, "src/serving/deploy_lightweight.py",
+                "--model-uri", self.model_uri,
+                "--endpoint-name", self.config.endpoint_name,
+                "--deployment-name", self.config.deployment_name,
+                "--instance-type", self.config.instance_type
+            ]
+        else:
+            logger.info("Using standard deployment script")
+            deploy_cmd = [
+                sys.executable, "src/serving/deploy_model.py",
+                "--model-uri", self.model_uri,
+                "--deployment-type", "azure",
+                "--endpoint-name", self.config.endpoint_name
+            ]
         
         result = self.run_command(deploy_cmd, "Azure deployment")
         

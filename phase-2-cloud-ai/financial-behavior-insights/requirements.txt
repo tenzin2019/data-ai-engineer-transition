@@ -1,23 +1,42 @@
-azure-ai-ml
-azureml-mlflow
-azure-core
-azure-identity
-azure-keyvault-secrets
-azure-storage-blob
-dvc
-mlflow
-scikit-learn
-pandas
-numpy
-joblib
-python-dotenv
-pytest
-flask
-pydantic
-seaborn
-matplotlib
-scipy
-requests
-dvc[azure]
+# Core Azure ML and MLflow dependencies (current environment versions)
+azure-ai-ml==1.28.1
+azureml-mlflow==1.57.0
+azure-core>=1.24.0
+azure-identity>=1.12.0
+azure-keyvault-secrets>=4.6.0
+azure-storage-blob>=12.14.0
+
+# MLflow and ML dependencies (matched to current environment)
+mlflow==2.22.1
+scikit-learn==1.7.0
+pandas==2.3.1
+numpy==1.26.4
+joblib==1.5.1
+
+# Data and pipeline dependencies
+dvc[azure]==3.48.4
+python-dotenv>=1.0.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Web framework dependencies
+flask>=2.3.0
+pydantic>=2.0.0
+
+# Visualization and analysis
+seaborn>=0.12.0
+matplotlib>=3.7.0
+scipy>=1.11.0
+
+# Utility dependencies
+requests>=2.31.0
+pyyaml>=6.0.0
+click>=8.0.0
+
+# Optional: For notebook support
+jupyter>=1.0.0
+ipykernel>=6.0.0
 
 
