@@ -1,234 +1,377 @@
 #!/usr/bin/env python3
 """
-Local testing script for the scoring endpoint.
+test_local.py
+
+Local testing script for the financial behavior prediction model.
 Tests the model locally before deployment to catch issues early.
+
+Usage:
+    python test_local.py [--model-uri <uri>] [--test-data <path>]
+
+MLOps Best Practices:
+    - Comprehensive model validation
+    - Performance testing
+    - Edge case handling
+    - Clear error reporting
 """
 
 import os
 import sys
 import json
+import time
+import argparse
+import warnings
 import numpy as np
 import pandas as pd
+import mlflow
 from pathlib import Path
+from typing import Dict, Any, Optional
 
-# Add the serving directory to path
-sys.path.append(os.path.dirname(__file__))
+# Suppress warnings for cleaner output in production
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*mlflow.*")
+warnings.filterwarnings("ignore", message=".*sklearn.*")
 
-from score import init, run, health_check, validate_input
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-def test_model_loading():
-    """Test that the model loads correctly."""
+
+def load_test_data(data_path: Optional[str] = None) -> pd.DataFrame:
+    """
+    Load test data for model validation.
+    
+    Args:
+        data_path: Optional path to test data CSV
+        
+    Returns:
+        pd.DataFrame: Test data
+    """
+    if data_path and os.path.exists(data_path):
+        print(f"Loading test data from {data_path}")
+        df = pd.read_csv(data_path)
+        # Remove target column if present
+        if 'HighAmount' in df.columns:
+            df = df.drop(columns=['HighAmount'])
+        return df
+    else:
+        print("Generating synthetic test data")
+        # Generate synthetic test data with 12 features
+        np.random.seed(42)
+        n_samples = 10
+        data = {
+            f'feature_{i}': np.random.randn(n_samples) for i in range(12)
+        }
+        return pd.DataFrame(data)
+
+
+def test_model_loading(model_uri: str) -> bool:
+    """
+    Test that the model loads correctly.
+    
+    Args:
+        model_uri: URI of the model to test
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    print("\n" + "="*50)
     print("Testing model loading...")
+    print("="*50)
     
     try:
-        # Set environment variable to point to our model
-        model_path = Path(__file__).parent.parent.parent / "outputs" / "model.joblib"
-        if not model_path.exists():
-            print(f"❌ Model not found at {model_path}")
-            print("Please run training first: python src/training/train_model.py --input-data data/processed/Comprehensive_Banking_Database_processed.csv")
-            return False
+        start_time = time.time()
+        model = mlflow.pyfunc.load_model(model_uri)
+        load_time = time.time() - start_time
         
-        # Set environment variable for model loading
-        os.environ["AZUREML_MODEL_DIR"] = str(model_path.parent)
+        print(f"✓ Model loaded successfully in {load_time:.2f} seconds")
+        print(f"  Model type: {type(model)}")
         
-        # Initialize the model
-        init()
-        print("✅ Model loaded successfully")
+        # Check model attributes
+        if hasattr(model, '_model_impl'):
+            print(f"  Implementation type: {type(model._model_impl)}")
+        
         return True
         
     except Exception as e:
-        print(f"❌ Model loading failed: {e}")
+        print(f"✗ Model loading failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
-def test_health_check():
-    """Test the health check endpoint."""
-    print("\nTesting health check...")
+
+def test_prediction(model_uri: str, test_data: pd.DataFrame) -> bool:
+    """
+    Test model predictions on sample data.
+    
+    Args:
+        model_uri: URI of the model to test
+        test_data: Test data DataFrame
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    print("\n" + "="*50)
+    print("Testing model predictions...")
+    print("="*50)
     
     try:
-        result = health_check()
-        print(f"Health check result: {result}")
+        model = mlflow.pyfunc.load_model(model_uri)
         
-        if result.get("status") == "healthy":
-            print("✅ Health check passed")
-            return True
-        else:
-            print(f"❌ Health check failed: {result}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Health check failed: {e}")
-        return False
-
-def test_input_validation():
-    """Test input validation with various scenarios."""
-    print("\nTesting input validation...")
-    
-    test_cases = [
-        {
-            "name": "Valid single sample",
-            "data": {"data": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]]},
-            "should_pass": True
-        },
-        {
-            "name": "Valid multiple samples",
-            "data": {"data": [
-                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
-                [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 0.1]
-            ]},
-            "should_pass": True
-        },
-        {
-            "name": "Missing data field",
-            "data": {"features": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]]},
-            "should_pass": False
-        },
-        {
-            "name": "Wrong number of features",
-            "data": {"data": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]]},
-            "should_pass": False
-        },
-        {
-            "name": "NaN values",
-            "data": {"data": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, np.nan]]},
-            "should_pass": False
-        }
-    ]
-    
-    passed = 0
-    total = len(test_cases)
-    
-    for test_case in test_cases:
-        try:
-            validate_input(test_case["data"])
-            if test_case["should_pass"]:
-                print(f"✅ {test_case['name']}: Passed")
-                passed += 1
-            else:
-                print(f"❌ {test_case['name']}: Should have failed but passed")
-        except Exception as e:
-            if test_case["should_pass"]:
-                print(f"❌ {test_case['name']}: Should have passed but failed - {e}")
-            else:
-                print(f"✅ {test_case['name']}: Correctly failed - {e}")
-                passed += 1
-    
-    print(f"Input validation: {passed}/{total} tests passed")
-    return passed == total
-
-def test_predictions():
-    """Test prediction functionality."""
-    print("\nTesting predictions...")
-    
-    # Load some real data for testing
-    data_path = Path(__file__).parent.parent.parent / "data" / "processed" / "Comprehensive_Banking_Database_processed.csv"
-    
-    if not data_path.exists():
-        print(f"❌ Test data not found at {data_path}")
-        print("Using synthetic data instead...")
+        # Test single prediction
+        print("\n1. Testing single sample prediction:")
+        single_sample = test_data.iloc[[0]]
+        print(f"   Input shape: {single_sample.shape}")
         
-        # Use synthetic data
-        test_data = {
-            "data": [
-                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2],
-                [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 0.1],
-                [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 0.1, 0.2]
-            ]
-        }
-    else:
-        # Use real data
-        print("Using real data for testing...")
-        df = pd.read_csv(data_path)
-        X = df.drop(columns=["HighAmount"]).head(3).values.tolist()
-        test_data = {"data": X}
-    
-    try:
-        result = run(test_data)
+        start_time = time.time()
+        single_pred = model.predict(single_sample)
+        pred_time = time.time() - start_time
         
-        print(f"Prediction result: {result}")
+        print(f"✓ Single prediction successful in {pred_time*1000:.2f} ms")
+        print(f"  Output type: {type(single_pred)}")
+        print(f"  Output shape: {getattr(single_pred, 'shape', len(single_pred))}")
+        print(f"  Prediction value: {single_pred}")
         
-        if result.get("status") == "success":
-            predictions = result.get("predictions", [])
-            probabilities = result.get("probabilities", [])
-            
-            print(f"✅ Predictions: {predictions}")
-            if probabilities:
-                print(f"✅ Probabilities: {probabilities}")
-            
-            # Validate predictions
-            if len(predictions) == len(test_data["data"]):
-                print("✅ Prediction count matches input count")
-                return True
-            else:
-                print(f"❌ Prediction count mismatch: expected {len(test_data['data'])}, got {len(predictions)}")
+        # Test batch prediction
+        print("\n2. Testing batch prediction:")
+        batch_size = min(5, len(test_data))
+        batch_sample = test_data.iloc[:batch_size]
+        print(f"   Batch size: {batch_size}")
+        
+        start_time = time.time()
+        batch_pred = model.predict(batch_sample)
+        batch_time = time.time() - start_time
+        
+        print(f"✓ Batch prediction successful in {batch_time*1000:.2f} ms")
+        print(f"  Average time per sample: {(batch_time/batch_size)*1000:.2f} ms")
+        print(f"  Output shape: {getattr(batch_pred, 'shape', len(batch_pred))}")
+        
+        # Validate output format
+        if isinstance(batch_pred, np.ndarray):
+            print(f"  Output dtype: {batch_pred.dtype}")
+            if len(batch_pred) != batch_size:
+                print(f"✗ Warning: Expected {batch_size} predictions, got {len(batch_pred)}")
                 return False
-        else:
-            print(f"❌ Prediction failed: {result.get('error')}")
-            return False
-            
+        
+        return True
+        
     except Exception as e:
-        print(f"❌ Prediction test failed: {e}")
+        print(f"✗ Prediction test failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
-def test_json_serialization():
-    """Test that the endpoint can handle JSON string input."""
-    print("\nTesting JSON serialization...")
+
+def test_edge_cases(model_uri: str) -> bool:
+    """
+    Test model behavior with edge cases.
     
-    test_data = {
-        "data": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]]
-    }
+    Args:
+        model_uri: URI of the model to test
+        
+    Returns:
+        bool: True if all tests pass, False otherwise
+    """
+    print("\n" + "="*50)
+    print("Testing edge cases...")
+    print("="*50)
     
     try:
-        # Test with JSON string
-        json_string = json.dumps(test_data)
-        result = run(json_string)
+        model = mlflow.pyfunc.load_model(model_uri)
+        all_passed = True
         
-        if result.get("status") == "success":
-            print("✅ JSON string input handled correctly")
+        # Define the correct feature names expected by the model
+        feature_names = [
+            'Age', 'Transaction Amount', 'Account Balance', 'AccountAgeDays',
+            'TransactionHour', 'TransactionDayOfWeek', 'Transaction Type_Deposit',
+            'Transaction Type_Transfer', 'Transaction Type_Withdrawal',
+            'Gender_Female', 'Gender_Male', 'Gender_Other'
+        ]
+        
+        # Test 1: Missing features (wrong number of features)
+        print("\n1. Testing with wrong number of features:")
+        try:
+            # Create data with only 10 features instead of 12
+            wrong_features = pd.DataFrame({feature_names[i]: [0.0] for i in range(10)})
+            model.predict(wrong_features)
+            print("✗ Model should have rejected input with wrong number of features")
+            all_passed = False
+        except Exception as e:
+            print(f"✓ Model correctly rejected invalid input")
+            print(f"  Error: {str(e)[:100]}...")
+        
+        # Test 2: Empty DataFrame
+        print("\n2. Testing with empty DataFrame:")
+        try:
+            empty_df = pd.DataFrame()
+            model.predict(empty_df)
+            print("✗ Model should have rejected empty input")
+            all_passed = False
+        except Exception as e:
+            print(f"✓ Model correctly rejected empty input")
+            print(f"  Error: {str(e)[:100]}...")
+        
+        # Test 3: NaN values (but with correct feature names)
+        print("\n3. Testing with NaN values:")
+        nan_data = pd.DataFrame({name: [np.nan] for name in feature_names})
+        try:
+            nan_pred = model.predict(nan_data)
+            print("✓ Model handled NaN values")
+            print(f"  Prediction with NaN: {nan_pred}")
+        except Exception as e:
+            print(f"✗ Model failed with NaN values")
+            print(f"  Error: {str(e)[:100]}...")
+            all_passed = False
+        
+        # Test 4: Extreme values (but with correct feature names)
+        print("\n4. Testing with extreme values:")
+        extreme_data = pd.DataFrame({
+            name: [1e10 if i % 2 == 0 else -1e10] 
+            for i, name in enumerate(feature_names)
+        })
+        try:
+            extreme_pred = model.predict(extreme_data)
+            print("✓ Model handled extreme values")
+            print(f"  Prediction with extremes: {extreme_pred}")
+        except Exception as e:
+            print(f"✗ Model failed with extreme values")
+            print(f"  Error: {str(e)[:100]}...")
+            all_passed = False
+        
+        return all_passed
+        
+    except Exception as e:
+        print(f"✗ Edge case testing failed: {e}")
+        return False
+
+
+def test_performance(model_uri: str, test_data: pd.DataFrame, n_iterations: int = 100) -> bool:
+    """
+    Test model performance and latency.
+    
+    Args:
+        model_uri: URI of the model to test
+        test_data: Test data DataFrame
+        n_iterations: Number of iterations for performance testing
+        
+    Returns:
+        bool: True if performance is acceptable, False otherwise
+    """
+    print("\n" + "="*50)
+    print("Testing model performance...")
+    print("="*50)
+    
+    try:
+        model = mlflow.pyfunc.load_model(model_uri)
+        
+        # Warm up
+        for _ in range(5):
+            model.predict(test_data.iloc[[0]])
+        
+        # Performance test
+        single_sample = test_data.iloc[[0]]
+        latencies = []
+        
+        print(f"\nRunning {n_iterations} predictions...")
+        for i in range(n_iterations):
+            start_time = time.time()
+            _ = model.predict(single_sample)
+            latency = (time.time() - start_time) * 1000  # Convert to ms
+            latencies.append(latency)
+            
+            if (i + 1) % 20 == 0:
+                print(f"  Progress: {i + 1}/{n_iterations}")
+        
+        # Calculate statistics
+        latencies = np.array(latencies)
+        
+        print("\nPerformance Statistics:")
+        print(f"  Mean latency: {np.mean(latencies):.2f} ms")
+        print(f"  Median latency: {np.median(latencies):.2f} ms")
+        print(f"  Min latency: {np.min(latencies):.2f} ms")
+        print(f"  Max latency: {np.max(latencies):.2f} ms")
+        print(f"  95th percentile: {np.percentile(latencies, 95):.2f} ms")
+        print(f"  99th percentile: {np.percentile(latencies, 99):.2f} ms")
+        
+        # Check if performance meets requirements
+        mean_latency = np.mean(latencies)
+        p95_latency = np.percentile(latencies, 95)
+        
+        if mean_latency < 100 and p95_latency < 200:
+            print("\n✓ Performance meets requirements")
             return True
         else:
-            print(f"❌ JSON string input failed: {result.get('error')}")
+            print("\n✗ Performance below requirements")
+            print("  Expected: mean < 100ms, p95 < 200ms")
             return False
-            
+        
     except Exception as e:
-        print(f"❌ JSON serialization test failed: {e}")
+        print(f"✗ Performance testing failed: {e}")
         return False
+
 
 def main():
-    """Run all tests."""
-    print("🧪 Starting local endpoint tests...\n")
+    """Main testing function."""
+    parser = argparse.ArgumentParser(description="Test MLflow model locally")
+    parser.add_argument(
+        "--model-uri",
+        type=str,
+        default="models:/financial-behavior-model@production",
+        help="URI of the model to test"
+    )
+    parser.add_argument(
+        "--test-data",
+        type=str,
+        help="Path to test data CSV file"
+    )
+    parser.add_argument(
+        "--skip-performance",
+        action="store_true",
+        help="Skip performance testing"
+    )
     
-    tests = [
-        ("Model Loading", test_model_loading),
-        ("Health Check", test_health_check),
-        ("Input Validation", test_input_validation),
-        ("Predictions", test_predictions),
-        ("JSON Serialization", test_json_serialization)
-    ]
+    args = parser.parse_args()
     
-    passed = 0
-    total = len(tests)
+    print(f"Testing model: {args.model_uri}")
     
-    for test_name, test_func in tests:
-        print(f"\n{'='*50}")
-        print(f"Running: {test_name}")
-        print(f"{'='*50}")
-        
-        try:
-            if test_func():
-                passed += 1
-        except Exception as e:
-            print(f"❌ {test_name} failed with exception: {e}")
+    # Load test data
+    test_data = load_test_data(args.test_data)
+    print(f"\nTest data shape: {test_data.shape}")
+    print(f"Features: {list(test_data.columns)}")
     
-    print(f"\n{'='*50}")
-    print(f"TEST SUMMARY: {passed}/{total} tests passed")
-    print(f"{'='*50}")
+    # Run tests
+    all_passed = True
     
-    if passed == total:
-        print("🎉 All tests passed! The endpoint is ready for deployment.")
-        return 0
+    # Test 1: Model loading
+    if not test_model_loading(args.model_uri):
+        all_passed = False
+        print("\n✗ Model loading test failed. Aborting further tests.")
+        sys.exit(1)
+    
+    # Test 2: Basic predictions
+    if not test_prediction(args.model_uri, test_data):
+        all_passed = False
+    
+    # Test 3: Edge cases
+    if not test_edge_cases(args.model_uri):
+        all_passed = False
+    
+    # Test 4: Performance (optional)
+    if not args.skip_performance:
+        if not test_performance(args.model_uri, test_data):
+            all_passed = False
+    
+    # Summary
+    print("\n" + "="*50)
+    print("TEST SUMMARY")
+    print("="*50)
+    
+    if all_passed:
+        print("✓ All tests passed!")
+        sys.exit(0)
     else:
-        print("⚠️  Some tests failed. Please fix issues before deployment.")
-        return 1
+        print("✗ Some tests failed. Please review the output above.")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
-    exit(main()) 
+    main() 

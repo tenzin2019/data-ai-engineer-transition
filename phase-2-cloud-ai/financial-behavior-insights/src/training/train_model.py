@@ -432,7 +432,32 @@ def main(args):
             if mlflow_available:
                 mlflow.log_artifact(model_path)
                 # Log with MLflow custom pyfunc
-                from mlflow_model import FinancialBehaviorModel
+                # Use self-contained model class to avoid import issues in deployment
+                from mlflow.pyfunc.model import PythonModel
+                
+                class FinancialBehaviorModel(PythonModel):
+                    """Self-contained MLflow model wrapper for deployment."""
+                    
+                    def load_context(self, context):
+                        import joblib
+                        self.model = joblib.load(context.artifacts["model_path"])
+                    
+                    def predict(self, context, model_input):
+                        import numpy as np
+                        import pandas as pd
+                        
+                        if isinstance(model_input, pd.DataFrame):
+                            X = model_input.values
+                        else:
+                            X = np.array(model_input)
+                        
+                        if len(X.shape) == 1:
+                            X = X.reshape(1, -1)
+                        
+                        if X.shape[1] != 12:
+                            raise ValueError(f"Expected 12 features, got {X.shape[1]}")
+                        
+                        return self.model.predict(X)
                 input_example = X.iloc[[0]].copy()
                 signature = mlflow.models.infer_signature(input_example, model.predict(input_example.values))
                 mlflow.pyfunc.log_model(

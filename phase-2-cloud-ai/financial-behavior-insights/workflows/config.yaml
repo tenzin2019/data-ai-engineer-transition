@@ -1,0 +1,32 @@
+# ML Workflow Configuration
+# This file defines the configuration for the complete MLOps workflow
+# from training to Azure deployment
+
+# Data Configuration
+input_data_path: "data/processed/Comprehensive_Banking_Database_processed.csv"
+test_data_split: 0.2
+
+# Training Configuration
+n_iter: 20  # Number of hyperparameter tuning iterations
+cv_folds: 3  # Cross-validation folds
+random_state: 42
+
+# Model Validation Thresholds
+min_accuracy: 0.8  # Minimum acceptable accuracy
+max_latency_ms: 100.0  # Maximum acceptable prediction latency in milliseconds
+
+# MLflow Configuration
+experiment_name: "financial-behavior-model"
+model_name: "financial-behavior-model"
+
+# Azure Deployment Configuration
+endpoint_name: "financial-behavior-endpoint"
+deployment_name: "blue"
+instance_type: "Standard_F2s_v2"
+instance_count: 1
+
+# Workflow Control Flags
+skip_training: false
+skip_local_testing: false
+skip_azure_deployment: false
+auto_approve_deployment: false 
