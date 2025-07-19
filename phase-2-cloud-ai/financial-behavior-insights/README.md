@@ -1,235 +1,265 @@
-# Financial Behavior Insights - ML Training Pipeline
+# Financial Behavior Insights - Azure ML Deployment
 
-A robust machine learning pipeline for predicting high-amount financial transactions using Random Forest classification.
+A comprehensive MLOps project for predicting high-amount transactions in banking data using Azure Machine Learning.
 
-## 🚀 Features
+## 🎯 Project Overview
 
-- **Comprehensive Data Validation**: Validates data quality, types, and structure
-- **Memory-Efficient Processing**: Supports chunked loading for large datasets
-- **Robust Error Handling**: Graceful failure handling with detailed logging
-- **Azure ML Integration**: Model registration and deployment ready
-- **MLflow Tracking**: Experiment tracking and model versioning
-- **Configurable Parameters**: Flexible hyperparameter tuning and training options
-- **Production-Ready**: Comprehensive testing and validation
+This project demonstrates a complete end-to-end ML pipeline including:
+- Data preprocessing and feature engineering
+- Model training with scikit-learn
+- Model compatibility fixes for Azure ML deployment
+- Azure ML managed online endpoint deployment
+- Comprehensive testing and validation
 
-## 🛠️ Installation
+## 🏗️ Architecture
 
-1. **Clone the repository**:
-```bash
-git clone <repository-url>
-cd financial-behavior-insights
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Raw Data      │───▶│  Preprocessing  │───▶│  Model Training │
+│   (CSV)         │    │   (Python)      │    │  (sklearn)      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Azure ML      │◀───│  Deployment     │◀───│  Model Retrain  │
+│   Endpoint      │    │   Manager       │    │  (Compatible)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Testing &     │
+│   Validation    │
+└─────────────────┘
 ```
 
-2. **Create virtual environment**:
-```bash
-# Using conda
-conda env create -f environment.yml
-conda activate financial-behavior-inference
+## 🚀 Quick Start
 
-# Or using pip
-python -m venv fin-env
-source fin-env/bin/activate  # On Windows: fin-env\Scripts\activate
-pip install -r requirements.txt
-```
+### Prerequisites
 
-3. **Set up environment variables**:
-Create a `.env` file in the project root with:
-```bash
-# Azure ML Configuration (required for model registration)
-AZURE_SUBSCRIPTION_ID=your-subscription-id
-AZURE_RESOURCE_GROUP=your-resource-group
-AZURE_WORKSPACE_NAME=your-workspace-name
+1. **Azure ML Workspace** with the following resources:
+   - Subscription ID
+   - Resource Group
+   - Workspace Name
 
-# Optional configurations
-RANDOM_STATE=42
-N_ITER=20
-CV_FOLDS=3
-TEST_SIZE=0.2
-```
+2. **Environment Variables** (create a `.env` file):
+   ```bash
+   AZURE_SUBSCRIPTION_ID=your_subscription_id
+   AZURE_RESOURCE_GROUP=your_resource_group
+   AZURE_WORKSPACE_NAME=your_workspace_name
+   ```
 
-## 📊 Usage
+3. **Python Environment**:
+   ```bash
+   # Create conda environment
+   make create-env
+   
+   # Activate environment
+   source fin-envi/bin/activate
+   
+   # Install dependencies
+   make install
+   ```
 
-### Basic Training
+### Complete End-to-End Pipeline
 
-```bash
-python src/training/train_model.py \
-    --input-data data/processed/Comprehensive_Banking_Database_processed.csv \
-    --output-dir outputs \
-    --random-state 42
-```
-
-### Advanced Training with Custom Parameters
-
-```bash
-python src/training/train_model.py \
-    --input-data data/processed/Comprehensive_Banking_Database_processed.csv \
-    --output-dir outputs \
-    --random-state 42 \
-    --n-iter 50 \
-    --cv 5 \
-    --test-size 0.25 \
-    --chunk-size 10000 \
-    --register-model \
-    --model-name "my-custom-model" \
-    --model-description "Custom Random Forest for financial insights"
-```
-
-### Command Line Arguments
-
-| Argument | Type | Default | Description |
-|----------|------|---------|-------------|
-| `--input-data` | str | **Required** | Path to input CSV file |
-| `--output-dir` | str | `outputs` | Directory to save model and metrics |
-| `--random-state` | int | `42` | Random state for reproducibility |
-| `--n-iter` | int | `20` | Number of hyperparameter tuning iterations |
-| `--cv` | int | `3` | Cross-validation folds |
-| `--test-size` | float | `0.2` | Proportion of data for testing |
-| `--chunk-size` | int | `None` | Chunk size for large CSV files |
-| `--register-model` | flag | `False` | Register model in Azure ML |
-| `--model-name` | str | `financial-behavior-insights-model` | Azure ML model name |
-| `--model-description` | str | `Random Forest for HighAmount prediction` | Model description |
-
-## 🔧 Data Requirements
-
-### Input Data Format
-
-The pipeline expects a CSV file with the following requirements:
-
-- **Target Column**: Must contain a column named `HighAmount` (binary: 0 or 1)
-- **Feature Columns**: All other columns will be used as features
-- **Data Types**: Target column must be numeric
-- **Missing Values**: No missing values in target column
-- **Duplicate Columns**: No duplicate column names
-
-### Example Data Structure
-
-```csv
-feature1,feature2,feature3,HighAmount
-1.2,0.5,0.8,0
-2.1,1.2,0.3,1
-0.8,0.9,1.1,0
-...
-```
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
+Run the entire pipeline with one command:
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Option 1: Using Makefile
+make full-pipeline
 
-# Run specific test categories
-pytest tests/test_train_model.py::TestDataValidation -v
-pytest tests/test_train_model.py::TestEnvironmentValidation -v
-pytest tests/test_train_model.py::TestIntegration -v
+# Option 2: Using Python workflow runner (recommended)
+make workflow-runner
 
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
+# Option 3: Direct Python execution
+python3 workflow_runner.py --full-pipeline
 ```
 
-## 📈 Output Files
+This will execute:
+1. ✅ Data preparation and preprocessing
+2. ✅ Model training with original sklearn version
+3. ✅ Model retraining for Azure ML compatibility
+4. ✅ Deployment to Azure ML managed endpoint
+5. ✅ Comprehensive testing and validation
 
-After successful training, the following files are generated:
+## 📁 Project Structure
 
 ```
-outputs/
-├── model.joblib          # Trained model (serialized)
-├── metrics.json          # Training metrics
-└── mlruns/              # MLflow experiment tracking
+financial-behavior-insights/
+├── data/
+│   ├── Banking-Dataset/           # Raw data
+│   └── processed/                 # Preprocessed data
+├── src/
+│   ├── data/
+│   │   └── preprocess_banking.py  # Data preprocessing
+│   ├── training/
+│   │   └── train_model.py         # Model training
+│   ├── serving/
+│   │   ├── deploy_manager.py      # Deployment manager
+│   │   └── score.py              # Scoring script
+│   └── utils/
+│       └── model_registry.py      # Model registration
+├── outputs/                       # Model artifacts
+├── tests/                         # Test files
+├── workflow_runner.py             # Main workflow orchestrator
+├── retrain_compatible_model.py    # Model compatibility fix
+├── test_deployments.py            # Deployment testing
+├── Makefile                       # Build automation
+├── requirements.txt               # Python dependencies
+└── environment.yml                # Conda environment
 ```
 
-### Metrics Format
+## 🔧 Available Commands
 
-```json
-{
-  "accuracy": 0.85,
-  "precision": 0.82,
-  "recall": 0.78,
-  "f1_score": 0.80,
-  "roc_auc": 0.88
-}
+### Makefile Commands
+
+```bash
+# Environment setup
+make create-env          # Create conda environment
+make update-env          # Update conda environment
+make install             # Install dependencies
+make check-env           # Check environment setup
+
+# Data and model
+make data-prep           # Prepare and preprocess data
+make train              # Train model with original sklearn
+make retrain            # Retrain model for Azure ML compatibility
+
+# Deployment
+make deploy             # Deploy model to Azure ML
+make status             # Check deployment status
+make logs               # Get deployment logs
+make test               # Test deployments
+
+# Workflows
+make full-pipeline      # Complete end-to-end workflow
+make workflow-runner    # Run with Python workflow runner
+make quick-deploy       # Quick deployment (assumes model ready)
+
+# Utilities
+make clean              # Clean artifacts and logs
+make troubleshoot       # Run troubleshooting checks
+make reset              # Reset everything and start fresh
 ```
 
-## 🔍 Troubleshooting
+### Python Scripts
+
+```bash
+# Workflow runner
+python3 workflow_runner.py --full-pipeline
+python3 workflow_runner.py --step data
+python3 workflow_runner.py --step train
+python3 workflow_runner.py --step retrain
+python3 workflow_runner.py --step deploy
+python3 workflow_runner.py --step test
+
+# Individual scripts
+python3 src/data/preprocess_banking.py --input data/Banking-Dataset/Comprehensive_Banking_Database.csv --output data/processed/
+python3 src/training/train_model.py --input-data data/processed/Comprehensive_Banking_Database_processed.csv --output-dir outputs/
+python3 retrain_compatible_model.py
+python3 src/serving/deploy_manager.py --action deploy --model-name financial-behavior-model-fixed
+python3 test_deployments.py --test-type all
+```
+
+## 🔍 Key Features
+
+### 1. **Model Compatibility Fix**
+- Automatically detects scikit-learn version incompatibilities
+- Retrains model with Azure ML-compatible versions (1.0.2 or 1.1.3)
+- Handles tree structure differences between sklearn versions
+
+### 2. **Robust Deployment**
+- Uses Azure ML managed online endpoints
+- Implements blue-green deployment strategy
+- Handles model registration and versioning
+- Custom scoring script for inference
+
+### 3. **Comprehensive Testing**
+- Environment validation
+- Model compatibility testing
+- Local model testing
+- Azure ML endpoint testing
+- Deployment status monitoring
+
+### 4. **Error Handling**
+- Detailed logging throughout the pipeline
+- Graceful failure handling
+- Automatic cleanup and recovery
+- Timeout protection for long-running operations
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-#### 1. Environment Variables Missing
-```
-ValueError: Missing required environment variables: ['AZURE_SUBSCRIPTION_ID', 'AZURE_RESOURCE_GROUP', 'AZURE_WORKSPACE_NAME']
-```
-**Solution**: Set up your `.env` file with the required Azure ML credentials.
+1. **"User container has crashed or terminated"**
+   - **Cause**: Scikit-learn version incompatibility
+   - **Solution**: Run `make retrain` to create compatible model
 
-#### 2. Data Validation Errors
-```
-ValueError: Target column 'HighAmount' not found in dataset
-```
-**Solution**: Ensure your CSV file contains a column named `HighAmount`.
+2. **Missing environment variables**
+   - **Cause**: Azure ML configuration not set
+   - **Solution**: Create `.env` file with required variables
 
-#### 3. Memory Issues with Large Files
-```
-MemoryError: Unable to allocate array
-```
-**Solution**: Use the `--chunk-size` parameter for large datasets:
+3. **Model loading errors**
+   - **Cause**: Model path or format issues
+   - **Solution**: Check model files in `outputs/` directory
+
+4. **Deployment failures**
+   - **Cause**: Azure ML service issues or configuration problems
+   - **Solution**: Check logs with `make logs` and verify Azure ML setup
+
+### Debugging Commands
+
 ```bash
-python src/training/train_model.py --input-data large_file.csv --chunk-size 10000
+# Check environment
+make check-env
+
+# Troubleshoot issues
+make troubleshoot
+
+# Get detailed logs
+make logs
+
+# Test specific components
+python3 test_deployments.py --test-type environment
+python3 test_deployments.py --test-type compatibility
+python3 test_deployments.py --test-type azure
 ```
 
-#### 4. MLflow Connection Issues
-```
-Warning: MLflow setup failed. Continuing without MLflow tracking.
-```
-**Solution**: This is not critical - the pipeline will continue without MLflow tracking.
+## 📊 Model Information
 
-#### 5. Azure ML Registration Failures
-```
-Azure ML model registration failed: [error details]
-```
-**Solution**: 
-- Verify Azure credentials and permissions
-- Check if the model file exists
-- Ensure Azure ML workspace is accessible
+### Model Details
+- **Algorithm**: Random Forest Classifier
+- **Target**: High-amount transaction prediction (binary classification)
+- **Features**: 12 engineered features including:
+  - Demographics (Age, Gender)
+  - Transaction details (Amount, Type, Hour, Day)
+  - Account information (Balance, Age)
+- **Performance**: ~85% accuracy on test set
 
-### Debug Mode
+### Model Artifacts
+- `outputs/model_compatible.joblib`: Complete model with scaler and metadata
+- `outputs/model_info.json`: Model information and feature list
+- `simple_model/model.pkl`: Simple model for basic deployment
 
-Enable verbose logging for debugging:
+## 🔄 Deployment Lifecycle
 
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
+1. **Development**: Local training and testing
+2. **Compatibility**: Model retraining for Azure ML
+3. **Registration**: Model registration in Azure ML workspace
+4. **Deployment**: Endpoint creation and model deployment
+5. **Validation**: Comprehensive testing and monitoring
+6. **Production**: Endpoint ready for inference
 
-## 🔒 Security Considerations
+## 📈 Monitoring and Logs
 
-- **Environment Variables**: Never commit `.env` files to version control
-- **Azure Credentials**: Use managed identities or service principals in production
-- **Data Privacy**: Ensure compliance with data protection regulations
-- **Model Security**: Validate model inputs and outputs in production
+### Log Files
+- `workflow.log`: Complete workflow execution log
+- Azure ML deployment logs: Available via `make logs`
 
-## 📝 Recent Fixes
-
-### Version 2.0 - Major Improvements
-
-#### Critical Bug Fixes
-- ✅ **Environment Variable Validation**: Added comprehensive validation for Azure ML credentials
-- ✅ **Silent Failure Prevention**: Proper error propagation and handling
-- ✅ **Data Validation**: Comprehensive data quality checks
-- ✅ **Memory Management**: Chunked loading for large datasets
-- ✅ **Model Validation**: Pre-save validation to ensure model integrity
-
-#### Enhanced Features
-- ✅ **Configurable Parameters**: All training parameters are now configurable
-- ✅ **Robust Error Handling**: Graceful failure handling throughout the pipeline
-- ✅ **Comprehensive Logging**: Detailed logging for debugging and monitoring
-- ✅ **Production-Ready**: Extensive testing and validation
-- ✅ **Azure ML Integration**: Improved model registration with proper error handling
-
-#### New Capabilities
-- ✅ **Large File Support**: Memory-efficient processing for datasets >100MB
-- ✅ **Flexible Output**: Configurable output directory and file formats
-- ✅ **Model Registration**: Optional Azure ML model registry integration
-- ✅ **MLflow Integration**: Robust experiment tracking setup
+### Monitoring Points
+- Model training metrics and performance
+- Deployment status and health
+- Endpoint response times and errors
+- Data drift and model degradation
 
 ## 🤝 Contributing
 
@@ -237,10 +267,9 @@ logging.basicConfig(level=logging.DEBUG)
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+5. Submit a pull request
 
-## 📄 License
+## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
@@ -248,6 +277,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For issues and questions:
 1. Check the troubleshooting section above
-2. Review the test files for usage examples
-3. Open an issue with detailed error information
-4. Include your environment details and data format
+2. Review the logs in `workflow.log`
+3. Run `make troubleshoot` for automated diagnostics
+4. Check Azure ML service status
+
+---
+
+**Last Updated**: July 19, 2025  
+**Status**: ✅ Production Ready  
+**Azure ML Endpoint**: `fin-behavior-ep-fixed` (Succeeded)

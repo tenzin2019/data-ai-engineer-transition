@@ -105,35 +105,77 @@ class DeploymentManager:
                 try:
                     azure_model = self.ml_client.models.get(model_name, label="latest")
                     logger.info(f"Model '{model_name}' already exists in Azure ML (version: {azure_model.version})")
-                    model_uri = f"azureml:{model_name}:{azure_model.version}"
+                    # Force registration of new version to avoid compatibility issues
+                    logger.info("Forcing registration of new model version for compatibility...")
+                    raise Exception("Force new registration")
                 except:
-                    # Register the MLflow model in Azure ML
-                    logger.info(f"Registering MLflow model '{model_name}' in Azure ML...")
+                    # Register the compatible model in Azure ML
+                    logger.info(f"Registering model '{model_name}' in Azure ML...")
                     
-                    # Use the local MLflow model directory
-                    mlflow_model_path = "mlflow_model"
-                    if not os.path.exists(mlflow_model_path):
-                        logger.error(f"MLflow model directory not found: {mlflow_model_path}")
-                        return {"success": False, "error": f"MLflow model not found: {mlflow_model_path}"}
+                    # Create a custom environment that matches Azure ML sklearn-1.0 environment
+                    from azure.ai.ml.entities import Environment
                     
-                    azure_model = Model(
-                        path=mlflow_model_path,
-                        name=model_name,
-                        description="Financial behavior prediction model",
-                        type="mlflow_model"
+                    # Define custom environment with exact Azure ML sklearn-1.0 specifications
+                    custom_env = Environment(
+                        name="custom-sklearn-1.0",
+                        conda_file={
+                            "name": "azureml-sklearn-1.0",
+                            "channels": ["conda-forge"],
+                            "dependencies": [
+                                "python=3.8",
+                                "pip",
+                                {
+                                    "pip": [
+                                        "scikit-learn==1.0.2",
+                                        "pandas>=1.1.0,<2.0.0",
+                                        "numpy>=1.19.0,<2.0.0",
+                                        "joblib>=1.0.0,<2.0.0",
+                                        "mlflow>=1.20.0,<2.0.0",
+                                        "azureml-inference-server-http>=0.7.0",
+                                        "azureml-defaults>=1.44.0"
+                                    ]
+                                }
+                            ]
+                        }
                     )
                     
-                    registered_model = self.ml_client.models.create_or_update(azure_model)
-                    model_uri = f"azureml:{model_name}:{registered_model.version}"
-                    logger.info(f"Model registered in Azure ML: {model_uri}")
+                    # Register the environment
+                    try:
+                        self.ml_client.environments.create_or_update(custom_env)
+                        logger.info("Custom environment registered successfully")
+                    except Exception as e:
+                        logger.warning(f"Could not register custom environment: {e}")
+                    
+                    # Register the compatible model
+                    model = Model(
+                        path="outputs/model_compatible.joblib",
+                        type="custom_model",
+                        name=model_name,
+                        description="Financial behavior prediction model (compatible with Azure ML)"
+                    )
+                    
+                    azure_model = self.ml_client.models.create_or_update(model)
+                    model_uri = f"azureml:{model_name}:{azure_model.version}"
+                    logger.info(f"Model registered successfully with version: {azure_model.version}")
                 
-                logger.info(f"Using Azure ML model: {model_uri}")
             except Exception as e:
-                logger.error(f"Model registration/retrieval failed: {e}")
-                return {"success": False, "error": f"Model error: {e}"}
+                logger.error(f"Failed to register model: {e}")
+                return {"success": False, "error": f"Model registration failed: {e}"}
             
             # Step 3: Create deployment using Azure CLI (more reliable)
             logger.info(f"Creating deployment: {deployment_name}")
+            
+            # Create temporary directory for code
+            import tempfile
+            import shutil
+            
+            temp_code_dir = tempfile.mkdtemp()
+            scoring_script_src = os.path.join("src", "serving", "score.py")
+            scoring_script_dst = os.path.join(temp_code_dir, "score.py")
+            
+            # Copy scoring script to temporary directory
+            shutil.copy2(scoring_script_src, scoring_script_dst)
+            logger.info(f"Copied scoring script to: {temp_code_dir}")
             
             # Create deployment YAML configuration with correct schema
             deployment_config = {
@@ -142,7 +184,11 @@ class DeploymentManager:
                 "model": model_uri,
                 "instance_type": instance_type,
                 "instance_count": instance_count,
-                "environment": "azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest"
+                "environment": "azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest",
+                "code_configuration": {
+                    "code": temp_code_dir,
+                    "scoring_script": "score.py"
+                }
             }
             
             # Use Azure CLI for deployment
@@ -156,15 +202,39 @@ class DeploymentManager:
                 yaml_file = f.name
             
             try:
-                # Deploy using Azure CLI
-                cmd = [
-                    "az", "ml", "online-deployment", "create",
+                # Check if deployment already exists
+                check_cmd = [
+                    "az", "ml", "online-deployment", "show",
                     "--endpoint-name", endpoint_name,
                     "--name", deployment_name,
-                    "--file", yaml_file,
                     "--resource-group", self.resource_group,
                     "--workspace-name", self.workspace_name
                 ]
+                
+                check_result = subprocess.run(check_cmd, capture_output=True, text=True, timeout=30)
+                
+                if check_result.returncode == 0:
+                    # Deployment exists, use update
+                    logger.info(f"Deployment '{deployment_name}' exists, updating...")
+                    cmd = [
+                        "az", "ml", "online-deployment", "update",
+                        "--endpoint-name", endpoint_name,
+                        "--name", deployment_name,
+                        "--file", yaml_file,
+                        "--resource-group", self.resource_group,
+                        "--workspace-name", self.workspace_name
+                    ]
+                else:
+                    # Deployment doesn't exist, use create
+                    logger.info(f"Creating new deployment '{deployment_name}'...")
+                    cmd = [
+                        "az", "ml", "online-deployment", "create",
+                        "--endpoint-name", endpoint_name,
+                        "--name", deployment_name,
+                        "--file", yaml_file,
+                        "--resource-group", self.resource_group,
+                        "--workspace-name", self.workspace_name
+                    ]
                 
                 logger.info("Starting deployment with Azure CLI...")
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
