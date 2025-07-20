@@ -84,8 +84,20 @@ def run(raw_data):
         # Parse the input data
         data = json.loads(raw_data)
         
-        # Convert to DataFrame
-        df = pd.DataFrame(data)
+        # Convert to DataFrame - handle both single row and multiple rows
+        if isinstance(data, dict):
+            # Single row - create DataFrame with index
+            df = pd.DataFrame([data])
+        elif isinstance(data, list):
+            # Multiple rows
+            df = pd.DataFrame(data)
+        else:
+            raise ValueError(f"Unexpected data format: {type(data)}")
+        
+        # Log input data for debugging
+        logger.info(f"Input data shape: {df.shape}")
+        logger.info(f"Input columns: {list(df.columns)}")
+        logger.info(f"Expected features: {feature_columns}")
         
         # Ensure we have the correct feature columns
         if not all(col in df.columns for col in feature_columns):
@@ -94,6 +106,7 @@ def run(raw_data):
         
         # Select only the required features
         X = df[feature_columns]
+        logger.info(f"Features shape: {X.shape}")
         
         # Apply scaling
         X_scaled = scaler.transform(X)
