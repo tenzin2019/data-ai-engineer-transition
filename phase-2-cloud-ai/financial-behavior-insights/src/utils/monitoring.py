@@ -96,7 +96,7 @@ class ModelMonitor:
             self._check_anomalies(prediction_record)
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to log prediction: {e}")
+            self.logger.error(f"Failed to log prediction: {e}")
     
     def _update_metrics(self, prediction_record: PredictionRecord):
         """Update current metrics with new prediction."""
@@ -164,10 +164,10 @@ class ModelMonitor:
             
             # Log to console
             for alert in alerts:
-                self.logger.warning(f"🚨 ALERT: {alert['message']}")
+                self.logger.warning(f"ALERT: {alert['message']}")
                 
         except Exception as e:
-            self.logger.error(f"❌ Failed to log alerts: {e}")
+            self.logger.error(f"Failed to log alerts: {e}")
     
     def get_metrics(self, window_hours: int = 24) -> ModelMetrics:
         """Get metrics for the specified time window."""
@@ -194,7 +194,7 @@ class ModelMonitor:
                 return self.current_metrics
                 
         except Exception as e:
-            self.logger.error(f"❌ Failed to get metrics: {e}")
+            self.logger.error(f"Failed to get metrics: {e}")
             return self.current_metrics
     
     def _calculate_metrics(self, predictions: List[Dict[str, Any]]) -> ModelMetrics:

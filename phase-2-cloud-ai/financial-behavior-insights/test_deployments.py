@@ -51,10 +51,10 @@ class DeploymentTester:
                 resource_group_name=self.resource_group,
                 workspace_name=self.workspace_name
             )
-            logger.info(f"✅ Connected to Azure ML workspace: {self.workspace_name}")
+            logger.info(f"Connected to Azure ML workspace: {self.workspace_name}")
             
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Azure ML client: {e}")
+            logger.error(f"Failed to initialize Azure ML client: {e}")
             raise
     
     def test_model_compatibility(self):
@@ -67,7 +67,7 @@ class DeploymentTester:
             # Check if compatible model exists
             model_path = "outputs/model_compatible.joblib"
             if not os.path.exists(model_path):
-                logger.error(f"❌ Compatible model not found: {model_path}")
+                logger.error(f"Compatible model not found: {model_path}")
                 return False
             
             # Load and test the compatible model
