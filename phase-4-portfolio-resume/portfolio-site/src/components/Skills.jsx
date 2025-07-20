@@ -1,30 +1,34 @@
+import React from 'react';
+
+const getRandomLevel = () => Math.floor(Math.random() * 31) + 55; // 55-85
+
 const Skills = () => {
   const skillCategories = [
     {
       category: 'Machine Learning',
       skills: [
-        { name: 'Python', level: 90 },
-        { name: 'PyTorch', level: 85 },
-        { name: 'scikit-learn', level: 90 },
-        { name: 'MLflow', level: 85 }
+        { name: 'Python', level: getRandomLevel() },
+        { name: 'PyTorch', level: getRandomLevel() },
+        { name: 'scikit-learn', level: getRandomLevel() },
+        { name: 'MLflow', level: getRandomLevel() }
       ]
     },
     {
       category: 'Cloud & DevOps',
       skills: [
-        { name: 'Azure ML', level: 85 },
-        { name: 'Docker', level: 80 },
-        { name: 'GitHub Actions', level: 75 },
-        { name: 'FastAPI', level: 85 }
+        { name: 'Azure ML', level: getRandomLevel() },
+        { name: 'Docker', level: getRandomLevel() },
+        { name: 'GitHub Actions', level: getRandomLevel() },
+        { name: 'FastAPI', level: getRandomLevel() }
       ]
     },
     {
       category: 'Data Engineering',
       skills: [
-        { name: 'SQL', level: 85 },
-        { name: 'Pandas', level: 90 },
-        { name: 'DVC', level: 80 },
-        { name: 'Airflow', level: 75 }
+        { name: 'SQL', level: getRandomLevel() },
+        { name: 'Pandas', level: getRandomLevel() },
+        { name: 'DVC', level: getRandomLevel() },
+        { name: 'Airflow', level: getRandomLevel() }
       ]
     }
   ];
@@ -32,9 +36,12 @@ const Skills = () => {
   return (
     <section id="skills" className="py-20 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
           Technical Skills
         </h2>
+        <p className="text-center text-gray-400 mb-8 max-w-2xl mx-auto">
+          Skill levels shown below are just estimates and change every time you load the page. I believe there is always room for improvement — reflecting how all developers feel: the more you know, the less you think you know! However, I am always open to learning new skills and technologies.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {skillCategories.map((category, index) => (
             <div

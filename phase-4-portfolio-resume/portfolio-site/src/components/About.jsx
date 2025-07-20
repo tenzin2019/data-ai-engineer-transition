@@ -4,7 +4,7 @@ const About = () => {
   return (
     <section id="about" className="py-20 bg-black">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
           About Me
         </h2>
         
@@ -12,11 +12,10 @@ const About = () => {
         <div className="text-center mb-16">
           <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-xl p-8 border border-blue-500/20">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              I help companies build AI systems that actually work in production
+              Turning Data into Real Solutions
             </h3>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              No more experimental models that never see the light of day. I bridge the gap between 
-              cutting-edge AI research and real-world business solutions that scale.
+              Bridging AI innovation and business needs to deliver real-world impact.
             </p>
           </div>
         </div>
@@ -31,18 +30,16 @@ const About = () => {
               </h3>
               <div className="space-y-6 text-gray-300 leading-relaxed">
                 <p>
-                  Picture this: A Data Scientist at the Fair Work Commission, building ML models that 
-                  actually help people. That's me. But I noticed something frustrating - too many AI 
-                  projects die in the lab, never making it to production.
+                  I help businesses turn data into actionable solutions — combining machine learning, data science, and AI solution to solve real-world problems.
                 </p>
                 <p>
-                  So I decided to change that. I'm transitioning from <span className="text-yellow-400 font-semibold">experimental ML</span> to 
-                  <span className="text-blue-400 font-semibold"> production AI systems</span>. From <span className="text-yellow-400 font-semibold">data analysis</span> to 
-                  <span className="text-purple-400 font-semibold"> AI infrastructure engineering</span>.
+                  My expertise spans the full project lifecycle: from data exploration and predictive modeling to deploying scalable systems in production. 
                 </p>
                 <p>
-                  My Master's in IT with AI specialization from Western Sydney University gave me the 
-                  foundation. Now I'm focused on making AI work in the real world, not just in research papers.
+                  Whether it’s building ML models, automating workflows, or driving insights, I focus on solutions that deliver lasting business impact—not just experiments.
+                </p>
+                <p>
+                  With a Master’s in IT with AI specialization and 4+ years of experience, I build real-world AI and data science solutions that go from idea to deployment.
                 </p>
               </div>
             </div>
@@ -54,8 +51,8 @@ const About = () => {
                 What Drives Me
               </h4>
               <p className="text-gray-300 mb-4">
-                I'm tired of seeing brilliant AI research collect dust. My mission is simple: 
-                <span className="text-blue-400 font-semibold"> Build AI systems that solve real problems and actually get deployed</span>.
+                My mission is simple: 
+                <span className="text-blue-400 font-semibold"> to build systems that solve real problems and actually get deployed.</span>.
               </p>
               <div className="space-y-3">
                 <div className="flex items-start">
@@ -68,7 +65,7 @@ const About = () => {
                 </div>
                 <div className="flex items-start">
                   <span className="text-green-500 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300">Help teams ship AI features faster than their competitors</span>
+                  <span className="text-gray-300">Help teams ship data-driven features faster than their competitors</span>
                 </div>
               </div>
             </div>
@@ -85,15 +82,15 @@ const About = () => {
               <div className="space-y-3">
                 <div className="flex items-start">
                   <span className="text-red-400 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300">A researcher who builds models that never leave the lab</span>
+                  <span className="text-gray-300">Not about AI hype — just simple, practical solutions that work</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-red-400 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300">Someone who promises AI magic without the engineering</span>
+                  <span className="text-gray-300">Someone who promises AI/ML magic without the engineering</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-red-400 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300">A consultant who disappears after the handover</span>
+                  <span className="text-gray-300">Someone who disappears after the handover</span>
                 </div>
               </div>
             </div>
@@ -115,11 +112,11 @@ const About = () => {
                 </div>
                 <div className="flex items-start">
                   <span className="text-green-500 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300"><span className="text-white font-semibold">100%</span> of my models made it to production</span>
+                  <span className="text-gray-300"><span className="text-white font-semibold">Automated</span> refund payment eligibility process</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-yellow-500 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300"><span className="text-white font-semibold">Azure certified</span> in AI and ML engineering</span>
+                  <span className="text-gray-300"><span className="text-white font-semibold">Azure certified</span> Azure AI Engineer Associate</span>
                 </div>
               </div>
             </div>
@@ -130,13 +127,11 @@ const About = () => {
                 <span className="text-purple-500 mr-2">🎭</span>
                 When I'm Not Coding
               </h4>
-              <p className="text-gray-300 mb-3">
-                Because robots are boring, and humans are interesting:
-              </p>
+          
               <ul className="space-y-2 text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">▸</span>
-                  <span>Contributing to open-source AI projects (because sharing is caring)</span>
+                  <span>At the gym, listening to music, relaxing in the Sauna or sometimes just catching up on sleep</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">▸</span>
