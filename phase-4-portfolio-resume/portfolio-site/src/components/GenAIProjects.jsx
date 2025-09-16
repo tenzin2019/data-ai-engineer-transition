@@ -19,18 +19,23 @@ const GenAIProjects = () => {
     },
     {
       title: 'Intelligent Document Analysis System',
-      description: 'GenAI-powered document processing platform that extracts insights, summarizes content, and generates actionable recommendations from complex business documents.',
-      tech: ['Azure OpenAI', 'Document AI', 'Python', 'Streamlit', 'PostgreSQL'],
+      description: 'Production-ready GenAI platform that processes complex business documents using Azure OpenAI and Document Intelligence. Features advanced text extraction, AI-powered analysis, and automated insight generation with 85% completion status.',
+      tech: ['Azure OpenAI GPT-4', 'Azure Document Intelligence', 'Python', 'Streamlit', 'FastAPI', 'PostgreSQL', 'Docker', 'SQLAlchemy'],
       image: '/placeholder-doc-analysis.jpg',
-      status: 'In Development',
-      progress: 60,
+      status: 'Near Completion',
+      progress: 85,
       features: [
-        'Multi-format document processing (PDF, Word, Excel)',
-        'Intelligent information extraction',
-        'Automated summarization and insights',
-        'Custom entity recognition',
-        'Integration with existing workflows'
-      ]
+        'Multi-format document processing (PDF, DOCX, XLSX, TXT)',
+        'AI-powered summarization and entity extraction',
+        'Sentiment analysis and key phrase identification',
+        'Automated recommendation generation',
+        'Real-time processing with progress tracking',
+        'Comprehensive analytics dashboard',
+        'Production-ready Docker deployment',
+        'Advanced error handling and validation'
+      ],
+      githubLink: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-3-specialization/intelligent-document-analysis',
+      demoLink: '#contact'
     },
     {
       title: 'Conversational AI Assistant',
@@ -70,6 +75,8 @@ const GenAIProjects = () => {
         return 'text-yellow-400 bg-yellow-900/30';
       case 'In Development':
         return 'text-blue-400 bg-blue-900/30';
+      case 'Near Completion':
+        return 'text-green-400 bg-green-900/30';
       case 'Planning Phase':
         return 'text-purple-400 bg-purple-900/30';
       case 'Research Phase':
@@ -167,11 +174,28 @@ const GenAIProjects = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-gray-400">Active Development</span>
+                    <span className="text-sm text-gray-400">
+                      {project.status === 'Near Completion' ? 'Ready for Demo' : 'Active Development'}
+                    </span>
                   </div>
-                  <button className="px-4 py-2 text-sm bg-purple-600/20 text-purple-400 rounded-lg border border-purple-600/50 hover:bg-purple-600/30 transition-colors duration-200">
-                    Coming Soon
-                  </button>
+                  <div className="flex space-x-2">
+                    {project.githubLink && (
+                      <a
+                        href={project.githubLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 text-sm bg-purple-600/20 text-purple-400 rounded-lg border border-purple-600/50 hover:bg-purple-600/30 transition-colors duration-200"
+                      >
+                        View Code
+                      </a>
+                    )}
+                    <a
+                      href={project.demoLink || '#contact'}
+                      className="px-4 py-2 text-sm bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/50 hover:bg-blue-600/30 transition-colors duration-200"
+                    >
+                      {project.status === 'Near Completion' ? 'Request Demo' : 'Coming Soon'}
+                    </a>
+                  </div>
                 </div>
               </div>
 
