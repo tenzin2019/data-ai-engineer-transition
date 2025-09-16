@@ -45,19 +45,31 @@ class AIAnalyzer:
                 credential=AzureKeyCredential(settings.azure_document_intelligence_api_key)
             )
     
-    def analyze_document(self, text: str, document_type: str = "general") -> Dict[str, Any]:
+    def analyze_document(self, text: str, document_type: str = "general", max_tokens: int = None, temperature: float = None, 
+                        include_entities: bool = True, include_sentiment: bool = True, 
+                        include_summary: bool = True, include_recommendations: bool = True) -> Dict[str, Any]:
         """
         Perform comprehensive AI analysis on document text.
         
         Args:
             text: Document text content
             document_type: Type of document for context-specific analysis
+            max_tokens: Maximum tokens for AI response (uses settings default if None)
+            temperature: Temperature for AI response (uses settings default if None)
+            include_entities: Whether to extract entities and key phrases
+            include_sentiment: Whether to perform sentiment analysis
+            include_summary: Whether to generate summary
+            include_recommendations: Whether to generate recommendations
             
         Returns:
             Dictionary containing analysis results
         """
         if not self.openai_client:
             raise ValueError("Azure OpenAI client not initialized")
+        
+        # Use passed parameters or fall back to settings
+        max_tokens = max_tokens if max_tokens is not None else settings.max_tokens
+        temperature = temperature if temperature is not None else settings.temperature
         
         # Clean and prepare text
         cleaned_text = clean_text(text)
@@ -90,7 +102,10 @@ class AIAnalyzer:
             chunk_results = []
             for i, chunk in enumerate(chunks):
                 logger.info(f"Processing chunk {i+1}/{len(chunks)} with {selected_model}")
-                chunk_result = self._analyze_text_chunk(chunk, document_type, selected_model)
+                chunk_result = self._analyze_text_chunk(chunk, document_type, selected_model, 
+                                                      include_entities, include_sentiment, 
+                                                      include_summary, include_recommendations,
+                                                      max_tokens, temperature)
                 chunk_results.append(chunk_result)
             
             # Combine results from all chunks
@@ -149,14 +164,21 @@ class AIAnalyzer:
         
         return complexity_indicators / total_indicators if total_indicators > 0 else 0.5
     
-    def _analyze_text_chunk(self, text: str, document_type: str, model_name: str = None) -> Dict[str, Any]:
+    def _analyze_text_chunk(self, text: str, document_type: str, model_name: str = None, 
+                           include_entities: bool = True, include_sentiment: bool = True, 
+                           include_summary: bool = True, include_recommendations: bool = True,
+                           max_tokens: int = None, temperature: float = None) -> Dict[str, Any]:
         """Analyze a single text chunk."""
         
         # Use provided model or default
         model_to_use = model_name or settings.azure_openai_deployment_name
         
-        # Create analysis prompt based on document type
-        prompt = self._create_analysis_prompt(text, document_type)
+        # Use passed parameters or fall back to settings
+        max_tokens = max_tokens if max_tokens is not None else settings.max_tokens
+        temperature = temperature if temperature is not None else settings.temperature
+        
+        # Create analysis prompt based on document type and requested analysis types
+        prompt = self._create_analysis_prompt(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
         
         try:
             response = self.openai_client.chat.completions.create(
@@ -165,8 +187,8 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are an expert document analyst. Provide detailed, accurate analysis in JSON format."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=settings.max_tokens,
-                temperature=settings.temperature,
+                max_tokens=max_tokens,
+                temperature=temperature,
                 response_format={"type": "json_object"}
             )
             
@@ -184,27 +206,43 @@ class AIAnalyzer:
                 'error': str(e)
             }
     
-    def _create_analysis_prompt(self, text: str, document_type: str) -> str:
-        """Create analysis prompt based on document type."""
+    def _create_analysis_prompt(self, text: str, document_type: str, include_entities: bool = True, 
+                               include_sentiment: bool = True, include_summary: bool = True, 
+                               include_recommendations: bool = True) -> str:
+        """Create analysis prompt based on document type and requested analysis types."""
+        
+        # Build the JSON structure based on what's requested
+        json_fields = []
+        
+        if include_summary:
+            json_fields.append('"summary": "A concise 2-3 sentence summary of the document"')
+        
+        if include_entities:
+            json_fields.extend([
+                '"key_phrases": ["list", "of", "important", "phrases"]',
+                '"entities": [{"text": "entity name", "type": "PERSON|ORGANIZATION|DATE|LOCATION|OTHER", "confidence": 0.9}]',
+                '"topics": ["main", "topics", "covered"]'
+            ])
+        
+        if include_sentiment:
+            json_fields.append('"sentiment": {"score": 0.5, "label": "positive|negative|neutral"}')
+        
+        if include_recommendations:
+            json_fields.extend([
+                '"insights": ["key", "insights", "from", "analysis"]',
+                '"recommendations": ["actionable", "recommendations"]'
+            ])
+        
+        json_structure = "{\n    " + ",\n    ".join(json_fields) + "\n}"
         
         base_prompt = f"""
-        Analyze the following {document_type} document text and provide a comprehensive analysis in JSON format.
+        Analyze the following {document_type} document text and provide analysis in JSON format.
         
         Text to analyze:
         {text[:4000]}  # Limit text length for prompt
         
         Please provide the analysis in the following JSON structure:
-        {{
-            "summary": "A concise 2-3 sentence summary of the document",
-            "key_phrases": ["list", "of", "important", "phrases"],
-            "entities": [
-                {{"text": "entity name", "type": "PERSON|ORGANIZATION|DATE|LOCATION|OTHER", "confidence": 0.9}}
-            ],
-            "sentiment": {{"score": 0.5, "label": "positive|negative|neutral"}},
-            "topics": ["main", "topics", "covered"],
-            "insights": ["key", "insights", "from", "analysis"],
-            "recommendations": ["actionable", "recommendations"]
-        }}
+        {json_structure}
         """
         
         # Add document-type specific instructions

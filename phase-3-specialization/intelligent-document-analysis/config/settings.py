@@ -62,7 +62,8 @@ class Settings(BaseSettings):
     azure_storage_container_name: str = Field(default="documents", env="AZURE_STORAGE_CONTAINER_NAME")
     
     # File Upload Configuration
-    max_file_size: int = Field(default=50 * 1024 * 1024, env="MAX_FILE_SIZE")  # 50MB
+    max_file_size_standard: int = Field(default=15 * 1024 * 1024, env="MAX_FILE_SIZE_STANDARD")  # 15MB
+    max_file_size_large: int = Field(default=200 * 1024 * 1024, env="MAX_FILE_SIZE_LARGE")  # 200MB
     allowed_file_types: list = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -71,6 +72,12 @@ class Settings(BaseSettings):
         "application/vnd.ms-excel",
         "text/plain"
     ]
+    
+    # Backward compatibility
+    @property
+    def max_file_size(self) -> int:
+        """Backward compatibility property for max_file_size."""
+        return self.max_file_size_standard
     
     # AI Processing Configuration
     max_tokens: int = Field(default=4000, env="MAX_TOKENS")

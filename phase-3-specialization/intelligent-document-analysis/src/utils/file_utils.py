@@ -162,6 +162,125 @@ def is_file_size_valid(file_path: str) -> bool:
     return size_mb <= max_size_mb
 
 
+def is_file_size_valid_for_standard(file_path: str) -> bool:
+    """
+    Check if file size is within standard limits (15MB).
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        True if file size is valid for standard upload, False otherwise
+    """
+    size_mb = get_file_size_mb(file_path)
+    max_size_mb = settings.max_file_size_standard / (1024 * 1024)
+    return size_mb <= max_size_mb
+
+
+def is_file_size_valid_for_large(file_path: str) -> bool:
+    """
+    Check if file size is within large file limits (200MB).
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        True if file size is valid for large upload, False otherwise
+    """
+    size_mb = get_file_size_mb(file_path)
+    max_size_mb = settings.max_file_size_large / (1024 * 1024)
+    return size_mb <= max_size_mb
+
+
+def get_upload_type_for_file(file_path: str) -> str:
+    """
+    Determine the appropriate upload type for a file based on its size.
+    
+    Args:
+        file_path: Path to the file
+        
+    Returns:
+        'standard' if file fits in 15MB limit, 'large' if it needs 200MB limit, 'too_large' if exceeds both
+    """
+    size_mb = get_file_size_mb(file_path)
+    standard_limit_mb = settings.max_file_size_standard / (1024 * 1024)
+    large_limit_mb = settings.max_file_size_large / (1024 * 1024)
+    
+    if size_mb <= standard_limit_mb:
+        return 'standard'
+    elif size_mb <= large_limit_mb:
+        return 'large'
+    else:
+        return 'too_large'
+
+
+# Streamlit file object validation functions
+def get_streamlit_file_size_mb(uploaded_file) -> float:
+    """
+    Get file size in megabytes from a Streamlit uploaded file object.
+    
+    Args:
+        uploaded_file: Streamlit file uploader object
+        
+    Returns:
+        File size in MB
+    """
+    size_bytes = len(uploaded_file.getvalue())
+    return size_bytes / (1024 * 1024)
+
+
+def is_streamlit_file_size_valid_for_standard(uploaded_file) -> bool:
+    """
+    Check if Streamlit file size is within standard limits (15MB).
+    
+    Args:
+        uploaded_file: Streamlit file uploader object
+        
+    Returns:
+        True if file size is valid for standard upload, False otherwise
+    """
+    size_mb = get_streamlit_file_size_mb(uploaded_file)
+    max_size_mb = settings.max_file_size_standard / (1024 * 1024)
+    return size_mb <= max_size_mb
+
+
+def is_streamlit_file_size_valid_for_large(uploaded_file) -> bool:
+    """
+    Check if Streamlit file size is within large file limits (200MB).
+    
+    Args:
+        uploaded_file: Streamlit file uploader object
+        
+    Returns:
+        True if file size is valid for large upload, False otherwise
+    """
+    size_mb = get_streamlit_file_size_mb(uploaded_file)
+    max_size_mb = settings.max_file_size_large / (1024 * 1024)
+    return size_mb <= max_size_mb
+
+
+def get_streamlit_upload_type_for_file(uploaded_file) -> str:
+    """
+    Determine the appropriate upload type for a Streamlit file based on its size.
+    
+    Args:
+        uploaded_file: Streamlit file uploader object
+        
+    Returns:
+        'standard' if file fits in 15MB limit, 'large' if it needs 200MB limit, 'too_large' if exceeds both
+    """
+    size_mb = get_streamlit_file_size_mb(uploaded_file)
+    standard_limit_mb = settings.max_file_size_standard / (1024 * 1024)
+    large_limit_mb = settings.max_file_size_large / (1024 * 1024)
+    
+    if size_mb <= standard_limit_mb:
+        return 'standard'
+    elif size_mb <= large_limit_mb:
+        return 'large'
+    else:
+        return 'too_large'
+
+
 def get_mime_type(file_path: str) -> Optional[str]:
     """
     Get MIME type of a file.
