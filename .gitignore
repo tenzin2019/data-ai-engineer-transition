@@ -97,3 +97,17 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp 
+
+#ven    
+venv/
+
+#pycache
+__pycache__/
+
+#logs
+logs/
+
+#data
+data/
+
+#tempg
