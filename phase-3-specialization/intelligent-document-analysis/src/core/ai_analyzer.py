@@ -10,8 +10,13 @@ from openai import AzureOpenAI
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 
-from ..config.settings import settings
-from ..utils.text_utils import clean_text, chunk_text
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from config.settings import settings
+from utils.text_utils import clean_text, chunk_text
+from utils.model_selector import model_selector
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +62,15 @@ class AIAnalyzer:
         # Clean and prepare text
         cleaned_text = clean_text(text)
         
+        # Smart model selection based on document characteristics
+        selected_model = model_selector.select_model(
+            document_type=document_type,
+            text_length=len(cleaned_text),
+            complexity_score=self._estimate_complexity(cleaned_text, document_type)
+        )
+        
+        logger.info(f"Selected model: {selected_model} for {document_type} document")
+        
         # Split text into chunks if too long
         chunks = chunk_text(cleaned_text, max_length=settings.max_document_length)
         
@@ -75,8 +89,8 @@ class AIAnalyzer:
             # Process each chunk
             chunk_results = []
             for i, chunk in enumerate(chunks):
-                logger.info(f"Processing chunk {i+1}/{len(chunks)}")
-                chunk_result = self._analyze_text_chunk(chunk, document_type)
+                logger.info(f"Processing chunk {i+1}/{len(chunks)} with {selected_model}")
+                chunk_result = self._analyze_text_chunk(chunk, document_type, selected_model)
                 chunk_results.append(chunk_result)
             
             # Combine results from all chunks
@@ -95,15 +109,58 @@ class AIAnalyzer:
         
         return analysis_results
     
-    def _analyze_text_chunk(self, text: str, document_type: str) -> Dict[str, Any]:
+    def _estimate_complexity(self, text: str, document_type: str) -> float:
+        """Estimate document complexity score (0.0 = simple, 1.0 = complex)."""
+        complexity_indicators = 0
+        total_indicators = 0
+        
+        # Length-based complexity
+        if len(text) > 10000:
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Technical terms
+        technical_terms = ['algorithm', 'implementation', 'architecture', 'framework', 'methodology']
+        if any(term in text.lower() for term in technical_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Legal/financial terms
+        legal_terms = ['contract', 'agreement', 'liability', 'compliance', 'regulation']
+        if any(term in text.lower() for term in legal_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Medical terms
+        medical_terms = ['diagnosis', 'treatment', 'symptom', 'patient', 'clinical']
+        if any(term in text.lower() for term in medical_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Document type complexity
+        if document_type.lower() in ['legal', 'financial', 'technical', 'medical']:
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Table/formula presence
+        if '|' in text or '=' in text or 'formula' in text.lower():
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        return complexity_indicators / total_indicators if total_indicators > 0 else 0.5
+    
+    def _analyze_text_chunk(self, text: str, document_type: str, model_name: str = None) -> Dict[str, Any]:
         """Analyze a single text chunk."""
+        
+        # Use provided model or default
+        model_to_use = model_name or settings.azure_openai_deployment_name
         
         # Create analysis prompt based on document type
         prompt = self._create_analysis_prompt(text, document_type)
         
         try:
             response = self.openai_client.chat.completions.create(
-                model=settings.azure_openai_deployment_name,
+                model=model_to_use,
                 messages=[
                     {"role": "system", "content": "You are an expert document analyst. Provide detailed, accurate analysis in JSON format."},
                     {"role": "user", "content": prompt}

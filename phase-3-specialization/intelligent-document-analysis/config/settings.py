@@ -4,7 +4,8 @@ Configuration settings for the Intelligent Document Analysis System.
 
 import os
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -35,7 +36,17 @@ class Settings(BaseSettings):
     azure_openai_endpoint: Optional[str] = Field(default=None, env="AZURE_OPENAI_ENDPOINT")
     azure_openai_api_key: Optional[str] = Field(default=None, env="AZURE_OPENAI_API_KEY")
     azure_openai_api_version: str = Field(default="2023-12-01-preview", env="AZURE_OPENAI_API_VERSION")
-    azure_openai_deployment_name: str = Field(default="gpt-4", env="AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_openai_deployment_name: str = Field(default="gpt-4o", env="AZURE_OPENAI_DEPLOYMENT_NAME")
+    
+    # Model Selection Strategy
+    primary_model: str = Field(default="gpt-4o", env="PRIMARY_MODEL")  # For complex documents
+    secondary_model: str = Field(default="gpt-4o-mini", env="SECONDARY_MODEL")  # For simple documents
+    budget_model: str = Field(default="gpt-3.5-turbo", env="BUDGET_MODEL")  # For high volume
+    
+    # Model selection criteria
+    use_primary_for_complex: bool = Field(default=True, env="USE_PRIMARY_FOR_COMPLEX")
+    complex_document_types: list = Field(default=["legal", "financial", "technical", "medical"], env="COMPLEX_DOCUMENT_TYPES")
+    max_tokens_budget_threshold: int = Field(default=2000, env="MAX_TOKENS_BUDGET_THRESHOLD")  # Use budget model for shorter docs
     
     # Azure Document Intelligence
     azure_document_intelligence_endpoint: Optional[str] = Field(

@@ -4,7 +4,11 @@ AI and machine learning utility functions.
 
 import re
 from typing import List, Dict, Any, Optional
-from ..config.settings import settings
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from config.settings import settings
 
 
 def chunk_text(text: str, max_length: int = None, overlap: int = 200) -> List[str]:

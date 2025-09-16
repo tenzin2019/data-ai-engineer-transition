@@ -61,7 +61,7 @@ class Document(Base):
     confidence_score = Column(Float, nullable=True)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)  # Additional document metadata
+    document_metadata = Column(JSON, nullable=True)  # Additional document metadata
     tags = Column(JSON, nullable=True)  # User-defined tags
     
     # User relationship

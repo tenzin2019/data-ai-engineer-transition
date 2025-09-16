@@ -6,7 +6,6 @@ import io
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-import magic
 import PyPDF2
 import pdfplumber
 import docx
@@ -14,8 +13,20 @@ import openpyxl
 from PIL import Image
 import pytesseract
 
-from ..models.document import DocumentType
-from ..utils.file_utils import get_file_extension, validate_file_type
+# Try to import magic, with fallback
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
+    magic = None
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from models.document import DocumentType
+from utils.file_utils import get_file_extension, validate_file_type
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +61,11 @@ class DocumentProcessor:
         
         # Detect MIME type if not provided
         if not mime_type:
-            mime_type = magic.from_file(str(file_path), mime=True)
+            if MAGIC_AVAILABLE:
+                mime_type = magic.from_file(str(file_path), mime=True)
+            else:
+                # Fallback to file extension-based detection
+                mime_type = self._get_mime_type_from_extension(file_path)
         
         # Validate file type
         if mime_type not in self.supported_types:
@@ -91,7 +106,7 @@ class DocumentProcessor:
                 extracted_text = "\n\n".join(text_content)
                 
                 # Extract metadata
-                metadata = {
+                document_metadata = {
                     'page_count': page_count,
                     'creator': pdf.metadata.get('Creator', '') if pdf.metadata else '',
                     'producer': pdf.metadata.get('Producer', '') if pdf.metadata else '',
@@ -102,7 +117,7 @@ class DocumentProcessor:
                 return {
                     'text': extracted_text,
                     'page_count': page_count,
-                    'metadata': metadata,
+                    'metadata': document_metadata,
                     'document_type': DocumentType.PDF
                 }
                 
@@ -123,9 +138,9 @@ class DocumentProcessor:
                 extracted_text = "\n\n".join(text_content)
                 
                 # Extract metadata
-                metadata = {}
+                document_metadata = {}
                 if pdf_reader.metadata:
-                    metadata = {
+                    document_metadata = {
                         'creator': pdf_reader.metadata.get('/Creator', ''),
                         'producer': pdf_reader.metadata.get('/Producer', ''),
                         'creation_date': str(pdf_reader.metadata.get('/CreationDate', '')),
@@ -135,7 +150,7 @@ class DocumentProcessor:
                 return {
                     'text': extracted_text,
                     'page_count': page_count,
-                    'metadata': metadata,
+                    'metadata': document_metadata,
                     'document_type': DocumentType.PDF
                 }
     
@@ -167,7 +182,7 @@ class DocumentProcessor:
             
             # Extract metadata
             core_props = doc.core_properties
-            metadata = {
+            document_metadata = {
                 'title': core_props.title or '',
                 'author': core_props.author or '',
                 'subject': core_props.subject or '',
@@ -179,7 +194,7 @@ class DocumentProcessor:
             return {
                 'text': extracted_text,
                 'page_count': len(paragraphs),  # Approximate page count
-                'metadata': metadata,
+                'metadata': document_metadata,
                 'document_type': DocumentType.DOCX
             }
             
@@ -217,7 +232,7 @@ class DocumentProcessor:
             extracted_text = "\n".join(all_text)
             
             # Extract metadata
-            metadata = {
+            document_metadata = {
                 'sheet_count': sheet_count,
                 'sheet_names': workbook.sheetnames,
                 'creator': workbook.properties.creator or '',
@@ -228,7 +243,7 @@ class DocumentProcessor:
             return {
                 'text': extracted_text,
                 'page_count': sheet_count,
-                'metadata': metadata,
+                'metadata': document_metadata,
                 'document_type': DocumentType.XLSX
             }
             
@@ -248,7 +263,7 @@ class DocumentProcessor:
                         extracted_text = file.read()
                     
                     # Basic metadata
-                    metadata = {
+                    document_metadata = {
                         'encoding': encoding,
                         'line_count': len(extracted_text.splitlines()),
                     }
@@ -256,7 +271,7 @@ class DocumentProcessor:
                     return {
                         'text': extracted_text,
                         'page_count': 1,  # Assume single page for text files
-                        'metadata': metadata,
+                        'metadata': document_metadata,
                         'document_type': DocumentType.TXT
                     }
                     
@@ -268,7 +283,7 @@ class DocumentProcessor:
                 content = file.read()
                 extracted_text = content.decode('utf-8', errors='replace')
             
-            metadata = {
+            document_metadata = {
                 'encoding': 'utf-8 (with errors replaced)',
                 'line_count': len(extracted_text.splitlines()),
             }
@@ -276,7 +291,7 @@ class DocumentProcessor:
             return {
                 'text': extracted_text,
                 'page_count': 1,
-                'metadata': metadata,
+                'metadata': document_metadata,
                 'document_type': DocumentType.TXT
             }
             
@@ -318,6 +333,29 @@ class DocumentProcessor:
         except Exception as e:
             logger.error(f"Error extracting images from PDF {file_path}: {str(e)}")
             return []
+    
+    def _get_mime_type_from_extension(self, file_path: Path) -> str:
+        """
+        Get MIME type from file extension as fallback.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            MIME type string
+        """
+        extension = file_path.suffix.lower()
+        
+        extension_to_mime = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.doc': 'application/msword',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xls': 'application/vnd.ms-excel',
+            '.txt': 'text/plain',
+        }
+        
+        return extension_to_mime.get(extension, 'application/octet-stream')
     
     def get_document_statistics(self, text: str) -> Dict:
         """

@@ -6,8 +6,13 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-from src.core.document_processor import DocumentProcessor
-from src.models.document import DocumentType
+import sys
+
+# Add the src directory to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from core.document_processor import DocumentProcessor
+from models.document import DocumentType
 
 
 class TestDocumentProcessor:

@@ -19,6 +19,7 @@ from .ai_utils import (
     estimate_tokens,
     format_prompt
 )
+from .model_selector import model_selector, ModelSelector
 
 __all__ = [
     "validate_file_type",
@@ -31,5 +32,7 @@ __all__ = [
     "calculate_readability_score",
     "chunk_text",
     "estimate_tokens",
-    "format_prompt"
+    "format_prompt",
+    "model_selector",
+    "ModelSelector"
 ]

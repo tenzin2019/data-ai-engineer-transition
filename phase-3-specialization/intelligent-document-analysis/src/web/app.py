@@ -116,23 +116,24 @@ def main():
         document_type = st.selectbox(
             "Document Type",
             ["general", "legal", "financial", "technical", "medical", "business"],
-            help="Select the type of document for context-specific analysis"
+            help="Select the type of document for context-specific analysis",
+            key="main_document_type"
         )
         
         # Analysis options
         st.subheader("Analysis Options")
-        include_entities = st.checkbox("Extract Entities", value=True)
-        include_sentiment = st.checkbox("Sentiment Analysis", value=True)
-        include_summary = st.checkbox("Generate Summary", value=True)
-        include_recommendations = st.checkbox("Generate Recommendations", value=True)
+        include_entities = st.checkbox("Extract Entities", value=True, key="main_entities")
+        include_sentiment = st.checkbox("Sentiment Analysis", value=True, key="main_sentiment")
+        include_summary = st.checkbox("Generate Summary", value=True, key="main_summary")
+        include_recommendations = st.checkbox("Generate Recommendations", value=True, key="main_recommendations")
         
         # Advanced options
         with st.expander("Advanced Options"):
-            max_tokens = st.slider("Max Tokens", 1000, 8000, 4000)
-            temperature = st.slider("Temperature", 0.0, 1.0, 0.3, 0.1)
+            max_tokens = st.slider("Max Tokens", 1000, 8000, 4000, key="main_max_tokens")
+            temperature = st.slider("Temperature", 0.0, 1.0, 0.3, 0.1, key="main_temperature")
     
     # Main content area
-    tab1, tab2, tab3, tab4 = st.tabs(["📤 Upload & Analyze", "📊 Analysis Results", "📈 Analytics Dashboard", "⚙️ Settings"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📤 Upload & Analyze", "📊 Analysis Results", "📈 Analytics Dashboard", "⚙️ Settings", "🤖 Model Comparison"])
     
     with tab1:
         upload_and_analyze_tab(document_type, include_entities, include_sentiment, include_summary, include_recommendations)
@@ -145,6 +146,12 @@ def main():
     
     with tab4:
         settings_tab()
+    
+    with tab5:
+        from model_comparison import show_model_comparison, show_smart_selection_demo
+        show_model_comparison()
+        st.markdown("---")
+        show_smart_selection_demo()
 
 def upload_and_analyze_tab(document_type, include_entities, include_sentiment, include_summary, include_recommendations):
     """Upload and analyze documents tab."""
@@ -180,7 +187,7 @@ def upload_and_analyze_tab(document_type, include_entities, include_sentiment, i
                 st.metric("Status", "❌ Invalid")
         
         # Analyze button
-        if st.button("🔍 Analyze Document", type="primary", disabled=not validate_file_type(uploaded_file.name, uploaded_file.type)):
+        if st.button("🔍 Analyze Document", type="primary", disabled=not validate_file_type(uploaded_file.name, uploaded_file.type), key="analyze_button"):
             analyze_document(uploaded_file, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
 
 def analyze_document(uploaded_file, document_type, include_entities, include_sentiment, include_summary, include_recommendations):
@@ -277,7 +284,7 @@ def analysis_results_tab():
     
     # Document selection
     document_options = {f"{doc['filename']} ({doc['upload_time'].strftime('%Y-%m-%d %H:%M')})": doc for doc in st.session_state.documents}
-    selected_doc_name = st.selectbox("Select Document", list(document_options.keys()))
+    selected_doc_name = st.selectbox("Select Document", list(document_options.keys()), key="document_selector")
     selected_doc = document_options[selected_doc_name]
     
     # Display document information
@@ -448,9 +455,10 @@ def analytics_dashboard_tab():
     st.subheader("📏 File Sizes Distribution")
     file_sizes = [doc['file_size_mb'] for doc in st.session_state.documents]
     
-    fig = px.histogram(x=file_sizes, nbins=10, title="File Sizes (MB)")
-    fig.update_xaxis(title="File Size (MB)")
-    fig.update_yaxis(title="Count")
+    fig = go.Figure(data=[go.Histogram(x=file_sizes, nbinsx=10)])
+    fig.update_layout(title="File Sizes (MB)")
+    fig.update_xaxes(title="File Size (MB)")
+    fig.update_yaxes(title="Count")
     st.plotly_chart(fig, use_container_width=True)
     
     # Sentiment analysis over time
@@ -483,9 +491,10 @@ def analytics_dashboard_tab():
     
     if all_entities:
         entity_counts = pd.Series(all_entities).value_counts()
-        fig = px.bar(x=entity_counts.index, y=entity_counts.values, title="Entity Types")
-        fig.update_xaxis(title="Entity Type")
-        fig.update_yaxis(title="Count")
+        fig = go.Figure(data=[go.Bar(x=entity_counts.index, y=entity_counts.values)])
+        fig.update_layout(title="Entity Types")
+        fig.update_xaxes(title="Entity Type")
+        fig.update_yaxes(title="Count")
         st.plotly_chart(fig, use_container_width=True)
 
 def settings_tab():
@@ -499,12 +508,12 @@ def settings_tab():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.text_input("Azure OpenAI Endpoint", value=settings.azure_openai_endpoint or "", disabled=True)
-        st.text_input("API Version", value=settings.azure_openai_api_version, disabled=True)
+        st.text_input("Azure OpenAI Endpoint", value=settings.azure_openai_endpoint or "", disabled=True, key="settings_endpoint")
+        st.text_input("API Version", value=settings.azure_openai_api_version, disabled=True, key="settings_api_version")
     
     with col2:
-        st.text_input("Deployment Name", value=settings.azure_openai_deployment_name, disabled=True)
-        st.slider("Max Tokens", value=settings.max_tokens, min_value=1000, max_value=8000, disabled=True)
+        st.text_input("Deployment Name", value=settings.azure_openai_deployment_name, disabled=True, key="settings_deployment")
+        st.slider("Max Tokens", value=settings.max_tokens, min_value=1000, max_value=8000, disabled=True, key="settings_max_tokens")
     
     # File Upload Settings
     st.subheader("📁 File Upload Settings")
@@ -536,7 +545,7 @@ def settings_tab():
     # Clear data button
     st.subheader("🗑️ Data Management")
     
-    if st.button("Clear All Analysis Data", type="secondary"):
+    if st.button("Clear All Analysis Data", type="secondary", key="clear_data_button"):
         st.session_state.documents = []
         st.session_state.current_analysis = None
         st.success("All analysis data has been cleared!")

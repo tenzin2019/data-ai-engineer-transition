@@ -10,7 +10,19 @@ from pathlib import Path
 from typing import List, Optional, Set
 from urllib.parse import quote
 
-from ..config.settings import settings
+# Try to import magic, with fallback
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
+    magic = None
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from config.settings import settings
 
 
 def validate_file_type(filename: str, mime_type: Optional[str] = None) -> bool:
@@ -160,6 +172,14 @@ def get_mime_type(file_path: str) -> Optional[str]:
     Returns:
         MIME type or None if not found
     """
+    # Try magic library first if available
+    if MAGIC_AVAILABLE:
+        try:
+            return magic.from_file(file_path, mime=True)
+        except Exception:
+            pass
+    
+    # Fallback to mimetypes
     mime_type, _ = mimetypes.guess_type(file_path)
     return mime_type
 

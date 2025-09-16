@@ -9,7 +9,17 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import PorterStemmer
-from textstat import flesch_reading_ease, flesch_kincaid_grade
+
+# Try to import textstat, with fallback
+try:
+    from textstat import flesch_reading_ease, flesch_kincaid_grade
+    TEXTSTAT_AVAILABLE = True
+except ImportError:
+    TEXTSTAT_AVAILABLE = False
+    def flesch_reading_ease(text):
+        return 50.0  # Default value
+    def flesch_kincaid_grade(text):
+        return 10.0  # Default value
 
 # Download required NLTK data
 try:
@@ -355,6 +365,54 @@ def extract_urls(text: str) -> List[str]:
     
     urls = re.findall(url_pattern, text)
     return list(set(urls))  # Remove duplicates
+
+
+def chunk_text(text: str, max_length: int = 4000, overlap: int = 200) -> List[str]:
+    """
+    Split text into chunks for processing by AI models.
+    
+    Args:
+        text: Input text to chunk
+        max_length: Maximum length of each chunk
+        overlap: Number of characters to overlap between chunks
+        
+    Returns:
+        List of text chunks
+    """
+    if not text:
+        return []
+    
+    if len(text) <= max_length:
+        return [text]
+    
+    chunks = []
+    start = 0
+    
+    while start < len(text):
+        end = start + max_length
+        
+        # If this isn't the last chunk, try to break at a sentence boundary
+        if end < len(text):
+            # Look for sentence endings within the last 200 characters
+            sentence_end = text.rfind('.', start, end)
+            if sentence_end > start + max_length - 200:
+                end = sentence_end + 1
+            else:
+                # Look for word boundaries
+                word_end = text.rfind(' ', start, end)
+                if word_end > start + max_length - 100:
+                    end = word_end
+        
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        
+        # Move start position with overlap
+        start = end - overlap
+        if start >= len(text):
+            break
+    
+    return chunks
 
 
 def calculate_text_statistics(text: str) -> Dict[str, int]:
