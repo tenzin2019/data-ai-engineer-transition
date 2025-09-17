@@ -49,7 +49,7 @@ services:
       - ./logs:/app/logs
     ports:
       - "8000:8000"
-      - "8501:8501"
+      - "8502:8501"
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,6 +101,40 @@ services:
       redis:
         condition: service_healthy
 
+  # pgAdmin for PostgreSQL Web Interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: document_analysis_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@documentanalysis.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+
+  # Redis Commander for Redis Web Interface
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: document_analysis_redis_commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - default
+
   # Nginx Reverse Proxy (Optional)
   nginx:
     image: nginx:alpine
@@ -119,6 +153,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
 
 networks:
   default:

@@ -27,6 +27,7 @@ class DocumentType(str, Enum):
     DOCX = "docx"
     XLSX = "xlsx"
     TXT = "txt"
+    GENERAL = "general"
     UNKNOWN = "unknown"
 
 

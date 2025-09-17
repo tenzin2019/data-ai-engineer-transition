@@ -14,7 +14,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    software-properties-common \
     git \
     tesseract-ocr \
     tesseract-ocr-eng \

@@ -19,6 +19,7 @@ from core.document_processor import DocumentProcessor
 from core.ai_analyzer import AIAnalyzer
 from utils.file_utils import validate_file_type, get_file_extension, is_streamlit_file_size_valid_for_standard, is_streamlit_file_size_valid_for_large, get_streamlit_upload_type_for_file
 from config.settings import settings
+from services.document_service import init_database, save_document_to_db, get_documents_from_db, get_document_by_id, delete_document_from_db, clear_all_documents_from_db
 
 # Page configuration
 st.set_page_config(
@@ -166,9 +167,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialize database
+init_database()
+
 # Initialize session state
-if 'documents' not in st.session_state:
-    st.session_state.documents = []
 if 'current_analysis' not in st.session_state:
     st.session_state.current_analysis = None
 if 'processing_status' not in st.session_state:
@@ -386,31 +388,26 @@ def analyze_document(uploaded_file, document_type, include_entities, include_sen
         status_text.text("📊 Processing results...")
         progress_bar.progress(90)
         
-        # Create document record
-        document_record = {
-            'id': len(st.session_state.documents) + 1,
-            'filename': uploaded_file.name,
-            'file_type': get_file_extension(uploaded_file.name),
-            'file_size_mb': len(uploaded_file.getvalue()) / (1024 * 1024),
-            'upload_time': datetime.now(),
-            'document_type': document_type,
-            'upload_type': upload_type,
-            'processing_result': processing_result,
-            'analysis_result': analysis_result,
-            'text_length': len(processing_result['text']),
-            'page_count': processing_result.get('page_count', 1),
-            'analysis_options': {
-                'include_entities': include_entities,
-                'include_sentiment': include_sentiment,
-                'include_summary': include_summary,
-                'include_recommendations': include_recommendations,
-                'max_tokens': max_tokens,
-                'temperature': temperature
-            }
-        }
+        # Save to database
+        document_id = save_document_to_db(
+            filename=uploaded_file.name,
+            original_filename=uploaded_file.name,
+            file_path=str(temp_file_path),
+            file_size=len(uploaded_file.getvalue()),
+            mime_type=uploaded_file.type,
+            document_type=document_type,
+            extracted_text=processing_result['text'],
+            text_length=len(processing_result['text']),
+            page_count=processing_result.get('page_count', 1),
+            summary=analysis_result.get('summary', ''),
+            key_phrases=analysis_result.get('key_phrases', []),
+            sentiment_score=analysis_result.get('sentiment', {}).get('score'),
+            confidence_score=analysis_result.get('confidence_score'),
+            analysis_data=analysis_result
+        )
         
-        # Add to session state
-        st.session_state.documents.append(document_record)
+        # Get the saved document for display
+        document_record = get_document_by_id(document_id)
         st.session_state.current_analysis = document_record
         
         # Step 5: Complete
@@ -440,12 +437,15 @@ def analysis_results_tab():
     
     st.header("📊 Analysis Results")
     
-    if not st.session_state.documents:
+    # Get documents from database
+    documents = get_documents_from_db()
+    
+    if not documents:
         st.info("No documents have been analyzed yet. Please upload and analyze a document first.")
         return
     
     # Document selection
-    document_options = {f"{doc['filename']} ({doc['upload_time'].strftime('%Y-%m-%d %H:%M')})": doc for doc in st.session_state.documents}
+    document_options = {f"{doc['filename']} ({doc['upload_time'].strftime('%Y-%m-%d %H:%M')})": doc for doc in documents}
     selected_doc_name = st.selectbox("Select Document", list(document_options.keys()), key="document_selector")
     selected_doc = document_options[selected_doc_name]
     
@@ -582,15 +582,18 @@ def analytics_dashboard_tab():
     
     st.markdown("### 📈 Analytics Dashboard")
     
-    if not st.session_state.documents:
+    # Get documents from database
+    documents = get_documents_from_db()
+    
+    if not documents:
         st.info("No documents analyzed yet. Upload and analyze some documents first.")
         return
     
     # Overall statistics
-    total_docs = len(st.session_state.documents)
-    total_pages = sum(doc['page_count'] for doc in st.session_state.documents)
-    total_text_length = sum(doc['text_length'] for doc in st.session_state.documents)
-    avg_confidence = sum(doc['analysis_result'].get('confidence_score', 0) for doc in st.session_state.documents) / total_docs
+    total_docs = len(documents)
+    total_pages = sum(doc['page_count'] or 0 for doc in documents)
+    total_text_length = sum(doc['text_length'] or 0 for doc in documents)
+    avg_confidence = sum(doc['analysis_result'].get('confidence_score', 0) or 0 for doc in documents) / total_docs if total_docs > 0 else 0
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -608,7 +611,7 @@ def analytics_dashboard_tab():
     
     # Document types distribution
     st.markdown("**📊 Document Types**")
-    doc_types = [doc['document_type'] for doc in st.session_state.documents]
+    doc_types = [doc['document_type'] for doc in documents]
     type_counts = pd.Series(doc_types).value_counts()
     
     fig = px.pie(values=type_counts.values, names=type_counts.index, title="Document Types")
@@ -616,7 +619,7 @@ def analytics_dashboard_tab():
     
     # File sizes distribution
     st.markdown("**📏 File Sizes**")
-    file_sizes = [doc['file_size_mb'] for doc in st.session_state.documents]
+    file_sizes = [doc['file_size_mb'] or 0 for doc in documents]
     
     fig = go.Figure(data=[go.Histogram(x=file_sizes, nbinsx=10)])
     fig.update_layout(title="File Sizes (MB)", height=300)
@@ -629,7 +632,7 @@ def analytics_dashboard_tab():
     sentiments = []
     dates = []
     
-    for doc in st.session_state.documents:
+    for doc in documents:
         sentiment = doc['analysis_result'].get('sentiment', {})
         if sentiment:
             sentiments.append(sentiment.get('score', 0))
@@ -647,7 +650,7 @@ def analytics_dashboard_tab():
     # Entity types distribution
     st.markdown("**🏷️ Entity Types**")
     all_entities = []
-    for doc in st.session_state.documents:
+    for doc in documents:
         entities = doc['analysis_result'].get('entities', [])
         for entity in entities:
             all_entities.append(entity.get('type', 'OTHER'))
@@ -710,9 +713,11 @@ def settings_tab():
     st.subheader("🗑️ Data Management")
     
     if st.button("Clear All Analysis Data", type="secondary", key="clear_data_button"):
-        st.session_state.documents = []
-        st.session_state.current_analysis = None
-        st.success("All analysis data has been cleared!")
+        if clear_all_documents_from_db():
+            st.session_state.current_analysis = None
+            st.success("All analysis data has been cleared from database!")
+        else:
+            st.error("Failed to clear data from database.")
 
 if __name__ == "__main__":
     main()

@@ -170,6 +170,11 @@ class AIAnalyzer:
                            max_tokens: int = None, temperature: float = None) -> Dict[str, Any]:
         """Analyze a single text chunk."""
         
+        # Check if Azure OpenAI is available
+        if not self.openai_client or not settings.azure_openai_api_key or settings.azure_openai_api_key == "your-azure-openai-api-key":
+            logger.warning("Azure OpenAI not configured, using fallback analysis")
+            return self._fallback_analysis(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
+        
         # Use provided model or default
         model_to_use = model_name or settings.azure_openai_deployment_name
         
@@ -197,14 +202,8 @@ class AIAnalyzer:
             
         except Exception as e:
             logger.error(f"Error analyzing text chunk: {str(e)}")
-            return {
-                'summary': '',
-                'key_phrases': [],
-                'entities': [],
-                'sentiment': {'score': 0.0, 'label': 'neutral'},
-                'topics': [],
-                'error': str(e)
-            }
+            logger.warning("Falling back to local analysis due to Azure OpenAI error")
+            return self._fallback_analysis(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
     
     def _create_analysis_prompt(self, text: str, document_type: str, include_entities: bool = True, 
                                include_sentiment: bool = True, include_summary: bool = True, 
@@ -264,6 +263,138 @@ class AIAnalyzer:
             """
         
         return base_prompt
+    
+    def _fallback_analysis(self, text: str, document_type: str, include_entities: bool = True, 
+                          include_sentiment: bool = True, include_summary: bool = True, 
+                          include_recommendations: bool = True) -> Dict[str, Any]:
+        """Fallback analysis using local processing when Azure OpenAI is not available."""
+        
+        result = {
+            'summary': '',
+            'key_phrases': [],
+            'entities': [],
+            'sentiment': {'score': 0.0, 'label': 'neutral'},
+            'topics': [],
+            'insights': [],
+            'recommendations': []
+        }
+        
+        # Basic text processing
+        words = text.split()
+        sentences = text.split('.')
+        
+        # Generate summary
+        if include_summary and sentences:
+            # Take first 2-3 sentences as summary
+            summary_sentences = sentences[:3]
+            result['summary'] = '. '.join([s.strip() for s in summary_sentences if s.strip()]) + '.'
+        
+        # Extract key phrases (simple approach)
+        if include_entities:
+            # Find capitalized words and common phrases
+            key_phrases = []
+            entities = []
+            
+            # Simple entity extraction
+            import re
+            
+            # Find capitalized words (potential entities)
+            capitalized_words = re.findall(r'\b[A-Z][a-z]+\b', text)
+            word_counts = {}
+            for word in capitalized_words:
+                if len(word) > 2:  # Filter out short words
+                    word_counts[word] = word_counts.get(word, 0) + 1
+            
+            # Get most frequent capitalized words as entities
+            sorted_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
+            for word, count in sorted_words[:10]:
+                entities.append({
+                    'text': word,
+                    'type': 'PERSON' if word.istitle() else 'ORGANIZATION',
+                    'confidence': min(0.9, count / len(words) * 100)
+                })
+            
+            # Extract key phrases (2-3 word combinations)
+            for i in range(len(words) - 2):
+                phrase = ' '.join(words[i:i+3])
+                if len(phrase) > 10 and phrase.lower() not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'man', 'oil', 'sit', 'try', 'use', 'why']:
+                    key_phrases.append(phrase)
+            
+            result['key_phrases'] = list(set(key_phrases))[:15]
+            result['entities'] = entities[:20]
+            
+            # Extract topics (based on common words)
+            common_words = {}
+            for word in words:
+                word_lower = word.lower().strip('.,!?;:"()[]{}')
+                if len(word_lower) > 4 and word_lower not in ['this', 'that', 'with', 'have', 'will', 'from', 'they', 'know', 'want', 'been', 'good', 'much', 'some', 'time', 'very', 'when', 'come', 'here', 'just', 'like', 'long', 'make', 'many', 'over', 'such', 'take', 'than', 'them', 'well', 'were']:
+                    common_words[word_lower] = common_words.get(word_lower, 0) + 1
+            
+            sorted_topics = sorted(common_words.items(), key=lambda x: x[1], reverse=True)
+            result['topics'] = [topic for topic, count in sorted_topics[:10]]
+        
+        # Basic sentiment analysis
+        if include_sentiment:
+            positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'positive', 'happy', 'success', 'win', 'best', 'better', 'improve', 'love', 'like', 'enjoy', 'pleased', 'satisfied', 'perfect', 'outstanding']
+            negative_words = ['bad', 'terrible', 'awful', 'horrible', 'negative', 'sad', 'fail', 'lose', 'worst', 'worse', 'problem', 'issue', 'error', 'hate', 'dislike', 'angry', 'frustrated', 'disappointed', 'broken', 'wrong']
+            
+            text_lower = text.lower()
+            positive_count = sum(1 for word in positive_words if word in text_lower)
+            negative_count = sum(1 for word in negative_words if word in text_lower)
+            
+            if positive_count > negative_count:
+                sentiment_score = 0.3
+                sentiment_label = 'positive'
+            elif negative_count > positive_count:
+                sentiment_score = -0.3
+                sentiment_label = 'negative'
+            else:
+                sentiment_score = 0.0
+                sentiment_label = 'neutral'
+            
+            result['sentiment'] = {
+                'score': sentiment_score,
+                'label': sentiment_label
+            }
+        
+        # Generate basic insights and recommendations
+        if include_recommendations:
+            insights = []
+            recommendations = []
+            
+            # Document length insights
+            if len(text) > 5000:
+                insights.append("Document is comprehensive and detailed")
+                recommendations.append("Review the full document for complete understanding")
+            elif len(text) < 500:
+                insights.append("Document is brief and concise")
+                recommendations.append("Consider if additional details are needed")
+            
+            # Entity insights
+            if result['entities']:
+                insights.append(f"Document contains {len(result['entities'])} key entities")
+                recommendations.append("Review identified entities for relevance")
+            
+            # Topic insights
+            if result['topics']:
+                insights.append(f"Document covers {len(result['topics'])} main topics")
+                recommendations.append("Focus on the most frequently mentioned topics")
+            
+            # Document type specific insights
+            if document_type == 'legal':
+                insights.append("Legal document analysis completed")
+                recommendations.append("Consult with legal team for detailed review")
+            elif document_type == 'financial':
+                insights.append("Financial document analysis completed")
+                recommendations.append("Schedule financial review meeting")
+            elif document_type == 'technical':
+                insights.append("Technical document analysis completed")
+                recommendations.append("Review technical specifications with experts")
+            
+            result['insights'] = insights
+            result['recommendations'] = recommendations
+        
+        return result
     
     def _combine_chunk_results(self, chunk_results: List[Dict]) -> Dict[str, Any]:
         """Combine results from multiple text chunks."""
