@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 Starting Intelligent Document Analysis on Azure App Service..."
+echo "Starting Intelligent Document Analysis on Azure App Service..."
 
 # Set Azure-specific environment variables
 export PYTHONPATH="/app"
@@ -28,38 +28,10 @@ if [ ! -d "/app/nltk_data" ]; then
     python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
 fi
 
-# Health check endpoint
-create_health_check() {
-    cat > /app/health.py << 'EOF'
-from flask import Flask, jsonify
-import os
-
-app = Flask(__name__)
-
-@app.route('/health')
-def health():
-    return jsonify({
-        'status': 'healthy',
-        'port': os.environ.get('PORT', '8000'),
-        'environment': os.environ.get('ENVIRONMENT', 'production')
-    })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8000)))
-EOF
-}
-
-# Start health check in background
-echo "🏥 Starting health check endpoint..."
-create_health_check
-python /app/health.py &
-HEALTH_PID=$!
-
-# Wait for health check to be ready
-sleep 5
+# Health check will be handled by Streamlit app's built-in health endpoint
 
 # Start the main application
-echo "🌐 Starting Streamlit application..."
+echo "Starting Streamlit application..."
 exec python -m streamlit run src/web/app.py \
     --server.port="${STREAMLIT_SERVER_PORT}" \
     --server.address="${STREAMLIT_SERVER_ADDRESS}" \

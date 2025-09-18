@@ -97,8 +97,7 @@ intelligent-document-analysis/
 │   ├── api/                    # FastAPI backend (future)
 │   ├── core/                   # Core business logic
 │   │   ├── document_processor.py
-│   │   ├── ai_analyzer.py
-│   │   └── entity_extractor.py
+│   │   └── ai_analyzer.py
 │   ├── models/                 # Database models
 │   │   ├── base.py
 │   │   ├── document.py

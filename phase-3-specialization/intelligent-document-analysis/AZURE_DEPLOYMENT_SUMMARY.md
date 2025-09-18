@@ -15,10 +15,7 @@ This document summarizes the Azure App Service deployment optimizations and conf
 ### 2. Azure Configuration Files
 - **`.azure/appsettings.json`** - Azure App Service configuration
 - **`.azure/deployment.yaml`** - Kubernetes deployment configuration
-- **`.azure/web.config`** - IIS configuration for Windows App Service
 - **`.azure/env.azure`** - Azure environment variables template
-- **`.azure/monitoring.yaml`** - Monitoring and alerting configuration
-- **`.azure/app-insights.json`** - Application Insights configuration
 
 ### 3. Requirements and Dependencies
 - **`requirements-azure.txt`** - Azure-optimized Python dependencies
@@ -194,10 +191,7 @@ intelligent-document-analysis/
 ├── .azure/
 │   ├── appsettings.json
 │   ├── deployment.yaml
-│   ├── web.config
-│   ├── env.azure
-│   ├── monitoring.yaml
-│   └── app-insights.json
+│   └── env.azure
 ├── scripts/
 │   ├── deploy-azure.sh
 │   ├── start-azure.sh

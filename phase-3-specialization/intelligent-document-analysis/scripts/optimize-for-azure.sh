@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🔧 Optimizing application for Azure App Service..."
+echo "Optimizing application for Azure App Service..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -20,39 +20,39 @@ command_exists() {
 }
 
 # Check prerequisites
-echo -e "${YELLOW}📋 Checking prerequisites...${NC}"
+echo -e "${YELLOW}Checking prerequisites...${NC}"
 
 if ! command_exists python3; then
-    echo -e "${RED}❌ Python 3 is not installed${NC}"
+    echo -e "${RED}ERROR: Python 3 is not installed${NC}"
     exit 1
 fi
 
 if ! command_exists pip; then
-    echo -e "${RED}❌ pip is not installed${NC}"
+    echo -e "${RED}ERROR: pip is not installed${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Prerequisites check passed${NC}"
+echo -e "${GREEN}Prerequisites check passed${NC}"
 
 # Create optimized requirements file
-echo -e "${YELLOW}📦 Creating optimized requirements file...${NC}"
+echo -e "${YELLOW}Creating optimized requirements file...${NC}"
 if [ -f "requirements-azure.txt" ]; then
     echo "Using existing requirements-azure.txt"
 else
-    echo -e "${RED}❌ requirements-azure.txt not found${NC}"
+    echo -e "${RED}ERROR: requirements-azure.txt not found${NC}"
     exit 1
 fi
 
 # Install Azure-optimized dependencies
-echo -e "${YELLOW}📥 Installing Azure-optimized dependencies...${NC}"
+echo -e "${YELLOW}Installing Azure-optimized dependencies...${NC}"
 pip install -r requirements-azure.txt --no-cache-dir
 
 # Optimize Python bytecode
-echo -e "${YELLOW}🐍 Optimizing Python bytecode...${NC}"
+echo -e "${YELLOW}Optimizing Python bytecode...${NC}"
 find . -name "*.py" -exec python -m py_compile {} \;
 
 # Create optimized startup script
-echo -e "${YELLOW}🚀 Creating optimized startup script...${NC}"
+echo -e "${YELLOW}Creating optimized startup script...${NC}"
 cat > start-azure-optimized.sh << 'EOF'
 #!/bin/bash
 
@@ -96,7 +96,7 @@ EOF
 chmod +x start-azure-optimized.sh
 
 # Create memory optimization script
-echo -e "${YELLOW}💾 Creating memory optimization script...${NC}"
+echo -e "${YELLOW}Creating memory optimization script...${NC}"
 cat > src/utils/memory_optimizer.py << 'EOF'
 """
 Memory optimization utilities for Azure App Service.
@@ -160,7 +160,7 @@ def get_memory_status() -> dict:
 EOF
 
 # Create Azure-specific configuration
-echo -e "${YELLOW}⚙️  Creating Azure-specific configuration...${NC}"
+echo -e "${YELLOW}Creating Azure-specific configuration...${NC}"
 cat > src/config/azure_config.py << 'EOF'
 """
 Azure-specific configuration for the application.
@@ -217,7 +217,7 @@ class AzureConfig:
 EOF
 
 # Create performance monitoring script
-echo -e "${YELLOW}📊 Creating performance monitoring script...${NC}"
+echo -e "${YELLOW}Creating performance monitoring script...${NC}"
 cat > src/utils/performance_monitor.py << 'EOF'
 """
 Performance monitoring utilities for Azure App Service.
@@ -287,7 +287,7 @@ def monitor_performance(func: Callable) -> Callable:
 EOF
 
 # Create Azure-specific startup optimization
-echo -e "${YELLOW}🚀 Creating Azure startup optimization...${NC}"
+echo -e "${YELLOW}Creating Azure startup optimization...${NC}"
 cat > src/utils/azure_startup.py << 'EOF'
 """
 Azure App Service startup optimization.
@@ -421,7 +421,7 @@ azure-pipelines.yml
 EOF
 
 # Create Azure-specific requirements optimization
-echo -e "${YELLOW}📦 Optimizing requirements for Azure...${NC}"
+echo -e "${YELLOW}Optimizing requirements for Azure...${NC}"
 cat > requirements-azure-optimized.txt << 'EOF'
 # Azure App Service Optimized Requirements (Minimal)
 # Core Framework
@@ -482,7 +482,7 @@ gunicorn==21.2.0
 EOF
 
 # Create Azure deployment checklist
-echo -e "${YELLOW}📋 Creating Azure deployment checklist...${NC}"
+echo -e "${YELLOW}Creating Azure deployment checklist...${NC}"
 cat > AZURE_DEPLOYMENT_CHECKLIST.md << 'EOF'
 # Azure Deployment Checklist
 
@@ -536,12 +536,12 @@ cat > AZURE_DEPLOYMENT_CHECKLIST.md << 'EOF'
 - [ ] Performance monitoring active
 EOF
 
-echo -e "${GREEN}✅ Azure optimization completed successfully!${NC}"
+echo -e "${GREEN}Azure optimization completed successfully!${NC}"
 echo ""
-echo -e "${BLUE}📝 Next steps:${NC}"
+echo -e "${BLUE}Next steps:${NC}"
 echo "1. Review the optimized configuration files"
 echo "2. Test the application locally with Azure settings"
 echo "3. Run the deployment script: ./scripts/deploy-azure.sh"
 echo "4. Monitor the application using the health check endpoint"
 echo ""
-echo -e "${GREEN}🎉 Optimization complete!${NC}"
+echo -e "${GREEN}Optimization complete!${NC}"

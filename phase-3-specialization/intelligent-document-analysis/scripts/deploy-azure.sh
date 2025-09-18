@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 Starting Azure App Service Deployment..."
+echo "Starting Azure App Service Deployment..."
 
 # Configuration
 APP_NAME="intelligent-document-analysis"
@@ -22,7 +22,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}📋 Deployment Configuration:${NC}"
+echo -e "${YELLOW}Deployment Configuration:${NC}"
 echo "App Name: $APP_NAME"
 echo "Resource Group: $RESOURCE_GROUP"
 echo "Location: $LOCATION"
@@ -33,32 +33,32 @@ echo ""
 
 # Check if Azure CLI is installed
 if ! command -v az &> /dev/null; then
-    echo -e "${RED}❌ Azure CLI is not installed. Please install it first:${NC}"
+    echo -e "${RED}ERROR: Azure CLI is not installed. Please install it first:${NC}"
     echo "https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"
     exit 1
 fi
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}❌ Docker is not installed. Please install it first:${NC}"
+    echo -e "${RED}ERROR: Docker is not installed. Please install it first:${NC}"
     echo "https://www.docker.com/products/docker-desktop"
     exit 1
 fi
 
 # Check if logged in to Azure
 if ! az account show &> /dev/null; then
-    echo -e "${YELLOW}🔐 Please log in to Azure:${NC}"
+    echo -e "${YELLOW}Please log in to Azure:${NC}"
     az login
 fi
 
-echo -e "${GREEN}✅ Azure CLI is ready${NC}"
+echo -e "${GREEN}Azure CLI is ready${NC}"
 
 # Create resource group
-echo -e "${YELLOW}📦 Creating resource group...${NC}"
+echo -e "${YELLOW}Creating resource group...${NC}"
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
 # Create App Service plan
-echo -e "${YELLOW}📋 Creating App Service plan...${NC}"
+echo -e "${YELLOW}Creating App Service plan...${NC}"
 az appservice plan create \
     --name $PLAN_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -75,18 +75,18 @@ az acr create \
     --admin-enabled true
 
 # Login to ACR
-echo -e "${YELLOW}🔑 Logging into Container Registry...${NC}"
+echo -e "${YELLOW}Logging into Container Registry...${NC}"
 az acr login --name $REGISTRY_NAME
 
 # Build and push Docker image
-echo -e "${YELLOW}🏗️  Building Docker image...${NC}"
+echo -e "${YELLOW}Building Docker image...${NC}"
 docker build -f Dockerfile.azure -t $REGISTRY_NAME.azurecr.io/$APP_NAME:latest .
 
-echo -e "${YELLOW}📤 Pushing Docker image...${NC}"
+echo -e "${YELLOW}Pushing Docker image...${NC}"
 docker push $REGISTRY_NAME.azurecr.io/$APP_NAME:latest
 
 # Create web app
-echo -e "${YELLOW}🌐 Creating web app...${NC}"
+echo -e "${YELLOW}Creating web app...${NC}"
 az webapp create \
     --name $APP_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -94,12 +94,12 @@ az webapp create \
     --deployment-container-image-name $REGISTRY_NAME.azurecr.io/$APP_NAME:latest
 
 # Get ACR credentials
-echo -e "${YELLOW}🔐 Getting Container Registry credentials...${NC}"
+echo -e "${YELLOW}Getting Container Registry credentials...${NC}"
 ACR_USERNAME=$(az acr credential show --name $REGISTRY_NAME --query username --output tsv)
 ACR_PASSWORD=$(az acr credential show --name $REGISTRY_NAME --query passwords[0].value --output tsv)
 
 # Configure app settings
-echo -e "${YELLOW}⚙️  Configuring app settings...${NC}"
+echo -e "${YELLOW}Configuring app settings...${NC}"
 az webapp config appsettings set \
     --name $APP_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -115,17 +115,21 @@ az webapp config appsettings set \
         STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
         STREAMLIT_SERVER_HEADLESS=true \
         STREAMLIT_SERVER_ENABLE_CORS=false \
-        STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+        STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false \
+        STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200 \
+        ENVIRONMENT=production \
+        DEBUG=false \
+        LOG_LEVEL=INFO
 
 # Configure continuous deployment
-echo -e "${YELLOW}🔄 Configuring continuous deployment...${NC}"
+echo -e "${YELLOW}Configuring continuous deployment...${NC}"
 az webapp config container set \
     --name $APP_NAME \
     --resource-group $RESOURCE_GROUP \
     --docker-custom-image-name $REGISTRY_NAME.azurecr.io/$APP_NAME:latest
 
 # Enable logging
-echo -e "${YELLOW}📊 Enabling application logging...${NC}"
+echo -e "${YELLOW}Enabling application logging...${NC}"
 az webapp log config \
     --name $APP_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -133,7 +137,7 @@ az webapp log config \
     --level information
 
 # Configure health check
-echo -e "${YELLOW}🏥 Configuring health check...${NC}"
+echo -e "${YELLOW}Configuring health check...${NC}"
 az webapp config set \
     --name $APP_NAME \
     --resource-group $RESOURCE_GROUP \
@@ -142,12 +146,12 @@ az webapp config set \
 # Get app URL
 APP_URL=$(az webapp show --name $APP_NAME --resource-group $RESOURCE_GROUP --query defaultHostName --output tsv)
 
-echo -e "${GREEN}✅ Azure App Service created successfully!${NC}"
+echo -e "${GREEN}Azure App Service created successfully!${NC}"
 echo ""
-echo -e "${GREEN}🌐 Your app is available at:${NC}"
+echo -e "${GREEN}Your app is available at:${NC}"
 echo "https://$APP_URL"
 echo ""
-echo -e "${BLUE}📝 Next steps:${NC}"
+echo -e "${BLUE}Next steps:${NC}"
 echo "1. Set your Azure OpenAI API keys in the App Service configuration:"
 echo "   az webapp config appsettings set --name $APP_NAME --resource-group $RESOURCE_GROUP --settings AZURE_OPENAI_ENDPOINT=your-endpoint AZURE_OPENAI_API_KEY=your-key"
 echo ""
@@ -160,4 +164,4 @@ echo ""
 echo "4. View application health:"
 echo "   https://$APP_URL/health"
 echo ""
-echo -e "${GREEN}🎉 Deployment script completed!${NC}"
+echo -e "${GREEN}Deployment script completed!${NC}"

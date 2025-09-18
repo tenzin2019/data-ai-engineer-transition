@@ -61,6 +61,7 @@ azure-keyvault-secrets==4.7.0
 
 # Production server
 gunicorn==21.2.0
+flask==3.0.0
 
 # Memory optimization
 pympler==0.9
