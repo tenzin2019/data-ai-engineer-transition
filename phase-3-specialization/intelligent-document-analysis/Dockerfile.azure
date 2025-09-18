@@ -38,11 +38,11 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+COPY requirements-azure.txt .
 
 # Install Python dependencies with optimizations
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-azure.txt && \
     pip cache purge
 
 # Download essential NLTK data only
