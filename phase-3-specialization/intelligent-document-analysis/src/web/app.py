@@ -1595,26 +1595,49 @@ def settings_tab():
     </div>
     """, unsafe_allow_html=True)
     
+    # Check if there are documents to clear
+    documents = get_documents_from_db()
+    doc_count = len(documents) if documents else 0
+    
+    if doc_count == 0:
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); margin: 1rem 0;">
+            <div style="color: var(--primary-600); font-weight: 500; font-size: 1.1rem;">
+                ℹ️ No analysis data found in database to clear.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); border-radius: 12px; border: 1px solid rgba(245, 158, 11, 0.2); margin: 1rem 0;">
+            <div style="color: var(--warning); font-weight: 500; font-size: 1.1rem;">
+                📊 Found {doc_count} document(s) in database. Click the button below to clear all data.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🗑️ Clear All Analysis Data", type="secondary", key="clear_data_button"):
-            if clear_all_documents_from_db():
-                st.session_state.current_analysis = None
-                st.markdown("""
-                <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border-radius: 12px; border: 1px solid var(--success); margin: 1rem 0;">
-                    <div style="color: var(--success); font-weight: 600; font-size: 1.1rem;">
-                        ✅ All analysis data has been cleared from database!
+        if st.button("🗑️ Clear All Analysis Data", type="secondary", key="clear_data_button", disabled=(doc_count == 0)):
+            with st.spinner("Clearing database..."):
+                if clear_all_documents_from_db():
+                    st.session_state.current_analysis = None
+                    st.markdown("""
+                    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border-radius: 12px; border: 1px solid var(--success); margin: 1rem 0;">
+                        <div style="color: var(--success); font-weight: 600; font-size: 1.1rem;">
+                            ✅ All analysis data has been cleared from database!
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%); border-radius: 12px; border: 1px solid var(--error); margin: 1rem 0;">
-                    <div style="color: var(--error); font-weight: 600; font-size: 1.1rem;">
-                        ❌ Failed to clear data from database.
+                    """, unsafe_allow_html=True)
+                    st.rerun()  # Refresh the page to update the UI
+                else:
+                    st.markdown("""
+                    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%); border-radius: 12px; border: 1px solid var(--error); margin: 1rem 0;">
+                        <div style="color: var(--error); font-weight: 600; font-size: 1.1rem;">
+                            ❌ Failed to clear data from database. Please check the console for error details.
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 

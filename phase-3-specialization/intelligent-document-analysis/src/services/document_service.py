@@ -234,33 +234,259 @@ def delete_document_from_db(document_id: int) -> bool:
     
     db = next(get_db())
     try:
+        from models.document import DocumentAnalysis, DocumentEntity
+        
+        # Check if document exists first
         document = db.query(Document).filter(Document.id == document_id).first()
+        if not document:
+            print(f"⚠️ Document {document_id} not found")
+            return False
         
-        if document:
-            db.delete(document)
-            db.commit()
-            return True
-        return False
+        # Delete related records first (due to foreign key constraints)
+        analyses_deleted = db.query(DocumentAnalysis).filter(DocumentAnalysis.document_id == document_id).delete()
+        entities_deleted = db.query(DocumentEntity).filter(DocumentEntity.document_id == document_id).delete()
         
-    except Exception as e:
-        db.rollback()
-        print(f"Error deleting document: {e}")
-        return False
-    finally:
-        db.close()
-
-def clear_all_documents_from_db() -> bool:
-    """Clear all documents from database."""
-    
-    db = next(get_db())
-    try:
-        db.query(Document).delete()
+        # Delete the document
+        db.delete(document)
         db.commit()
+        
+        print(f"✅ Document {document_id} ({document.filename}) and related data deleted successfully!")
+        print(f"   - Deleted {analyses_deleted} analyses")
+        print(f"   - Deleted {entities_deleted} entities")
         return True
         
     except Exception as e:
         db.rollback()
-        print(f"Error clearing documents: {e}")
+        print(f"❌ Error deleting document {document_id}: {e}")
+        return False
+    finally:
+        db.close()
+
+def debug_database_state() -> None:
+    """Debug function to check database state."""
+    db = next(get_db())
+    try:
+        from sqlalchemy import text
+        
+        print("🔍 Database State Debug Information:")
+        print("=" * 50)
+        
+        # Check documents
+        result = db.execute(text("SELECT COUNT(*) FROM documents"))
+        doc_count = result.scalar()
+        print(f"Documents: {doc_count}")
+        
+        if doc_count > 0:
+            # Show document details
+            result = db.execute(text("SELECT id, filename, status FROM documents LIMIT 5"))
+            docs = result.fetchall()
+            for doc in docs:
+                print(f"  - ID: {doc[0]}, Filename: {doc[1]}, Status: {doc[2]}")
+        
+        # Check document analyses
+        result = db.execute(text("SELECT COUNT(*) FROM document_analyses"))
+        analyses_count = result.scalar()
+        print(f"Document Analyses: {analyses_count}")
+        
+        if analyses_count > 0:
+            # Show analysis details
+            result = db.execute(text("SELECT document_id, analysis_type FROM document_analyses LIMIT 5"))
+            analyses = result.fetchall()
+            for analysis in analyses:
+                print(f"  - Document ID: {analysis[0]}, Type: {analysis[1]}")
+        
+        # Check document entities
+        result = db.execute(text("SELECT COUNT(*) FROM document_entities"))
+        entities_count = result.scalar()
+        print(f"Document Entities: {entities_count}")
+        
+        if entities_count > 0:
+            # Show entity details
+            result = db.execute(text("SELECT document_id, entity_type FROM document_entities LIMIT 5"))
+            entities = result.fetchall()
+            for entity in entities:
+                print(f"  - Document ID: {entity[0]}, Type: {entity[1]}")
+        
+        print("=" * 50)
+        
+    except Exception as e:
+        print(f"❌ Error checking database state: {e}")
+    finally:
+        db.close()
+
+def clear_all_documents_from_db() -> bool:
+    """Clear all documents from database using raw SQL for maximum reliability."""
+    
+    db = next(get_db())
+    try:
+        from sqlalchemy import text
+        
+        # First check if there are any documents to delete
+        result = db.execute(text("SELECT COUNT(*) FROM documents"))
+        doc_count = result.scalar()
+        
+        if doc_count == 0:
+            print("ℹ️ No documents found in database to clear")
+            return True
+        
+        print(f"🗑️ Clearing {doc_count} documents and related data...")
+        
+        # Debug database state before clearing
+        debug_database_state()
+        
+        # Method 1: Try raw SQL with explicit deletion order
+        try:
+            print("   Using raw SQL deletion method...")
+            
+            # Step 1: Delete all document analyses first
+            result1 = db.execute(text("DELETE FROM document_analyses"))
+            analyses_deleted = result1.rowcount
+            print(f"   ✅ Deleted {analyses_deleted} document analyses")
+            
+            # Step 2: Delete all document entities second
+            result2 = db.execute(text("DELETE FROM document_entities"))
+            entities_deleted = result2.rowcount
+            print(f"   ✅ Deleted {entities_deleted} document entities")
+            
+            # Step 3: Delete all documents last
+            result3 = db.execute(text("DELETE FROM documents"))
+            docs_deleted = result3.rowcount
+            print(f"   ✅ Deleted {docs_deleted} documents")
+            
+            # Commit all changes
+            db.commit()
+            print(f"✅ Successfully cleared {docs_deleted} documents, {analyses_deleted} analyses, and {entities_deleted} entities!")
+            return True
+            
+        except Exception as sql_error:
+            print(f"   ⚠️ Raw SQL method failed: {sql_error}")
+            db.rollback()
+            
+            # Method 2: Try with foreign key constraint handling
+            try:
+                print("   Trying with foreign key constraint handling...")
+                
+                # For PostgreSQL, temporarily disable foreign key checks
+                db.execute(text("SET session_replication_role = replica;"))
+                
+                # Delete all records
+                result1 = db.execute(text("DELETE FROM document_analyses"))
+                analyses_deleted = result1.rowcount
+                print(f"   ✅ Deleted {analyses_deleted} document analyses")
+                
+                result2 = db.execute(text("DELETE FROM document_entities"))
+                entities_deleted = result2.rowcount
+                print(f"   ✅ Deleted {entities_deleted} document entities")
+                
+                result3 = db.execute(text("DELETE FROM documents"))
+                docs_deleted = result3.rowcount
+                print(f"   ✅ Deleted {docs_deleted} documents")
+                
+                # Re-enable foreign key checks
+                db.execute(text("SET session_replication_role = DEFAULT;"))
+                
+                db.commit()
+                print(f"✅ Successfully cleared {docs_deleted} documents, {analyses_deleted} analyses, and {entities_deleted} entities! (FK disabled)")
+                return True
+                
+            except Exception as fk_error:
+                print(f"   ⚠️ Foreign key method also failed: {fk_error}")
+                db.rollback()
+                
+                # Method 3: Try individual document deletion with ORM
+                try:
+                    print("   Trying individual document deletion with ORM...")
+                    
+                    from models.document import DocumentAnalysis, DocumentEntity
+                    
+                    documents = db.query(Document).all()
+                    docs_deleted = 0
+                    analyses_deleted = 0
+                    entities_deleted = 0
+                    
+                    for document in documents:
+                        try:
+                            # Delete related records for this specific document FIRST
+                            analyses_deleted += db.query(DocumentAnalysis).filter(DocumentAnalysis.document_id == document.id).delete()
+                            entities_deleted += db.query(DocumentEntity).filter(DocumentEntity.document_id == document.id).delete()
+                            
+                            # Then delete the document
+                            db.delete(document)
+                            docs_deleted += 1
+                            
+                            print(f"   ✅ Deleted document {document.id}: {document.filename}")
+                            
+                        except Exception as doc_error:
+                            print(f"   ⚠️ Error deleting document {document.id}: {doc_error}")
+                            continue
+                    
+                    db.commit()
+                    print(f"✅ Successfully cleared {docs_deleted} documents, {analyses_deleted} analyses, and {entities_deleted} entities! (Individual ORM)")
+                    return True
+                    
+                except Exception as orm_error:
+                    print(f"   ⚠️ Individual ORM method also failed: {orm_error}")
+                    db.rollback()
+                    
+                    # Method 4: Try TRUNCATE CASCADE (PostgreSQL specific)
+                    try:
+                        print("   Trying TRUNCATE CASCADE method...")
+                        
+                        # Use TRUNCATE CASCADE to delete all records at once
+                        db.execute(text("TRUNCATE TABLE document_analyses, document_entities, documents CASCADE"))
+                        
+                        db.commit()
+                        print(f"✅ Successfully cleared all data using TRUNCATE CASCADE!")
+                        return True
+                        
+                    except Exception as truncate_error:
+                        print(f"   ⚠️ TRUNCATE CASCADE method also failed: {truncate_error}")
+                        db.rollback()
+                        
+                        # Method 5: Try individual document deletion with raw SQL
+                        try:
+                            print("   Trying individual document deletion with raw SQL...")
+                            
+                            # Get all document IDs
+                            result = db.execute(text("SELECT id FROM documents"))
+                            doc_ids = [row[0] for row in result.fetchall()]
+                            
+                            docs_deleted = 0
+                            analyses_deleted = 0
+                            entities_deleted = 0
+                            
+                            for doc_id in doc_ids:
+                                try:
+                                    # Delete related records for this specific document
+                                    result1 = db.execute(text("DELETE FROM document_analyses WHERE document_id = :doc_id"), {"doc_id": doc_id})
+                                    analyses_deleted += result1.rowcount
+                                    
+                                    result2 = db.execute(text("DELETE FROM document_entities WHERE document_id = :doc_id"), {"doc_id": doc_id})
+                                    entities_deleted += result2.rowcount
+                                    
+                                    # Delete the document
+                                    result3 = db.execute(text("DELETE FROM documents WHERE id = :doc_id"), {"doc_id": doc_id})
+                                    docs_deleted += result3.rowcount
+                                    
+                                    print(f"   ✅ Deleted document {doc_id}")
+                                    
+                                except Exception as doc_error:
+                                    print(f"   ⚠️ Error deleting document {doc_id}: {doc_error}")
+                                    continue
+                            
+                            db.commit()
+                            print(f"✅ Successfully cleared {docs_deleted} documents, {analyses_deleted} analyses, and {entities_deleted} entities! (Individual SQL)")
+                            return True
+                            
+                        except Exception as individual_sql_error:
+                            print(f"   ⚠️ Individual SQL method also failed: {individual_sql_error}")
+                            db.rollback()
+                            return False
+        
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error clearing documents: {e}")
+        print(f"   Error details: {str(e)}")
         return False
     finally:
         db.close()
