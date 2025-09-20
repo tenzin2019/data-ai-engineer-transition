@@ -545,11 +545,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize database only if not disabled
-if os.getenv("DB_DISABLED", "false").lower() != "true":
-    init_database()
-else:
-    print("✅ Database disabled, skipping initialization")
+# Initialize database (always enable SQLite for persistence)
+init_database()
+print("✅ Database initialized for persistent storage")
 
 # Initialize session state
 if 'current_analysis' not in st.session_state:
@@ -1029,31 +1027,8 @@ def analyze_document(uploaded_file, document_type, include_entities, include_sen
         """, unsafe_allow_html=True)
         progress_bar.progress(90)
         
-        # Save to database or session state
-        if os.getenv("DB_DISABLED", "false").lower() == "true":
-            # Database disabled - store in session state
-            document_record = {
-                'id': 1,  # Dummy ID
-                'filename': uploaded_file.name,
-                'original_filename': uploaded_file.name,
-                'file_size': len(uploaded_file.getvalue()),
-                'mime_type': uploaded_file.type,
-                'document_type': document_type,
-                'text_length': len(processing_result['text']),
-                'page_count': processing_result.get('page_count', 1),
-                'upload_time': datetime.now().isoformat(),
-                'analysis_result': analysis_result,
-                'analysis_options': {
-                    'include_entities': include_entities,
-                    'include_sentiment': include_sentiment,
-                    'include_summary': include_summary,
-                    'include_recommendations': include_recommendations
-                }
-            }
-            st.session_state.current_analysis = document_record
-            print("✅ Document stored in session state (database disabled)")
-        else:
-            # Database enabled - save to database
+        # Save to database for persistence
+        try:
             document_id = save_document_to_db(
                 filename=uploaded_file.name,
                 original_filename=uploaded_file.name,
@@ -1074,6 +1049,31 @@ def analyze_document(uploaded_file, document_type, include_entities, include_sen
             # Get the saved document for display
             document_record = get_document_by_id(document_id)
             st.session_state.current_analysis = document_record
+            print(f"✅ Document saved to database with ID: {document_id}")
+            
+        except Exception as e:
+            print(f"⚠️ Database save failed, using session state fallback: {e}")
+            # Fallback to session state if database fails
+            document_record = {
+                'id': 1,  # Dummy ID
+                'filename': uploaded_file.name,
+                'original_filename': uploaded_file.name,
+                'file_size': len(uploaded_file.getvalue()),
+                'mime_type': uploaded_file.type,
+                'document_type': document_type,
+                'text_length': len(processing_result['text']),
+                'page_count': processing_result.get('page_count', 1),
+                'upload_time': datetime.now().isoformat(),
+                'analysis_result': analysis_result,
+                'analysis_options': {
+                    'include_entities': include_entities,
+                    'include_sentiment': include_sentiment,
+                    'include_summary': include_summary,
+                    'include_recommendations': include_recommendations
+                }
+            }
+            st.session_state.current_analysis = document_record
+            print("✅ Document stored in session state (database fallback)")
         
         # Step 5: Complete
         progress_bar.progress(100)
@@ -1138,13 +1138,21 @@ def analysis_results_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Get documents from database or session state
-    if os.getenv("DB_DISABLED", "false").lower() == "true":
-        # Database disabled - use session state
-        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
-    else:
-        # Database enabled - get from database
+    # Get documents from database (with session state fallback)
+    try:
         documents = get_documents_from_db()
+        print(f"🔍 Debug: Retrieved {len(documents)} documents from database")
+        
+        # If no documents in database but we have current analysis in session state, use that
+        if not documents and st.session_state.current_analysis:
+            documents = [st.session_state.current_analysis]
+            print("🔍 Debug: Using session state fallback for current analysis")
+            
+    except Exception as e:
+        print(f"⚠️ Database query failed, using session state: {e}")
+        # Fallback to session state if database fails
+        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
+        print(f"🔍 Debug: Using session state fallback, documents count: {len(documents)}")
     
     if not documents:
         st.markdown("""
@@ -1356,13 +1364,18 @@ def analytics_dashboard_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Get documents from database or session state
-    if os.getenv("DB_DISABLED", "false").lower() == "true":
-        # Database disabled - use session state
-        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
-    else:
-        # Database enabled - get from database
+    # Get documents from database (with session state fallback)
+    try:
         documents = get_documents_from_db()
+        
+        # If no documents in database but we have current analysis in session state, use that
+        if not documents and st.session_state.current_analysis:
+            documents = [st.session_state.current_analysis]
+            
+    except Exception as e:
+        print(f"⚠️ Database query failed, using session state: {e}")
+        # Fallback to session state if database fails
+        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
     
     if not documents:
         st.markdown("""
