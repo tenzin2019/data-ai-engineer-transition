@@ -17,6 +17,22 @@ from sqlalchemy.orm import Session
 
 def init_database():
     """Initialize database tables."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, skipping initialization")
+        return True
+    
+    # Check if using SQLite and create directory if needed
+    database_url = os.getenv("DATABASE_URL", "")
+    if "sqlite" in database_url:
+        # Extract directory from SQLite path
+        import os
+        db_path = database_url.replace("sqlite:///", "")
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"✅ Created database directory: {db_dir}")
+    
     return create_tables()
 
 def save_document_to_db(
@@ -37,6 +53,10 @@ def save_document_to_db(
     user_id: int = None
 ) -> int:
     """Save document to database and return document ID."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, skipping save operation")
+        return 1  # Return dummy ID
     
     db = next(get_db())
     try:
@@ -86,6 +106,10 @@ def save_document_to_db(
 
 def get_documents_from_db(limit: int = 100) -> List[Dict]:
     """Get documents from database."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, returning empty list")
+        return []
     
     db = next(get_db())
     try:
@@ -159,6 +183,10 @@ def get_documents_from_db(limit: int = 100) -> List[Dict]:
 
 def get_document_by_id(document_id: int) -> Optional[Dict]:
     """Get specific document by ID."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, returning None")
+        return None
     
     db = next(get_db())
     try:
@@ -231,6 +259,10 @@ def get_document_by_id(document_id: int) -> Optional[Dict]:
 
 def delete_document_from_db(document_id: int) -> bool:
     """Delete document from database."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, skipping delete operation")
+        return True
     
     db = next(get_db())
     try:
@@ -316,6 +348,10 @@ def debug_database_state() -> None:
 
 def clear_all_documents_from_db() -> bool:
     """Clear all documents from database using raw SQL for maximum reliability."""
+    # Check if database is disabled
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        print("✅ Database disabled, skipping clear operation")
+        return True
     
     db = next(get_db())
     try:

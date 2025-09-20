@@ -9,10 +9,10 @@ echo "Starting Azure App Service Deployment..."
 
 # Configuration
 APP_NAME="intelligent-document-analysis"
-RESOURCE_GROUP="rg-document-analysis"
-LOCATION="eastus"
+RESOURCE_GROUP="rg-data-ai-eng-con"
+LOCATION="australiaeast"
 PLAN_NAME="plan-document-analysis"
-REGISTRY_NAME="acrdocumentanalysis"
+REGISTRY_NAME="1a27253794c8488f83ef31437e7d1248"
 SKU="P1V2"  # Change to FREE for development
 
 # Colors for output
@@ -53,9 +53,14 @@ fi
 
 echo -e "${GREEN}Azure CLI is ready${NC}"
 
-# Create resource group
-echo -e "${YELLOW}Creating resource group...${NC}"
-az group create --name $RESOURCE_GROUP --location $LOCATION
+# Check if resource group exists
+echo -e "${YELLOW}Checking resource group...${NC}"
+if az group show --name $RESOURCE_GROUP &> /dev/null; then
+    echo -e "${GREEN}Resource group $RESOURCE_GROUP already exists${NC}"
+else
+    echo -e "${YELLOW}Creating resource group...${NC}"
+    az group create --name $RESOURCE_GROUP --location $LOCATION
+fi
 
 # Create App Service plan
 echo -e "${YELLOW}Creating App Service plan...${NC}"
@@ -66,24 +71,30 @@ az appservice plan create \
     --sku $SKU \
     --is-linux
 
-# Create Container Registry
-echo -e "${YELLOW}🐳 Creating Container Registry...${NC}"
-az acr create \
-    --name $REGISTRY_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --sku Basic \
-    --admin-enabled true
+# Check if Container Registry exists
+echo -e "${YELLOW}🐳 Checking Container Registry...${NC}"
+if az acr show --name $REGISTRY_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
+    echo -e "${GREEN}Container Registry $REGISTRY_NAME already exists${NC}"
+else
+    echo -e "${YELLOW}Creating Container Registry...${NC}"
+    az acr create \
+        --name $REGISTRY_NAME \
+        --resource-group $RESOURCE_GROUP \
+        --sku Basic \
+        --admin-enabled true
+fi
 
 # Login to ACR
 echo -e "${YELLOW}Logging into Container Registry...${NC}"
 az acr login --name $REGISTRY_NAME
 
-# Build and push Docker image
-echo -e "${YELLOW}Building Docker image...${NC}"
-docker build -f Dockerfile.azure -t $REGISTRY_NAME.azurecr.io/$APP_NAME:latest .
-
-echo -e "${YELLOW}Pushing Docker image...${NC}"
-docker push $REGISTRY_NAME.azurecr.io/$APP_NAME:latest
+# Build and push Docker image with correct platform
+echo -e "${YELLOW}Building Docker image for linux/amd64...${NC}"
+docker buildx build \
+    --platform linux/amd64 \
+    -f Dockerfile.azure \
+    -t $REGISTRY_NAME.azurecr.io/$APP_NAME:latest \
+    --push .
 
 # Create web app
 echo -e "${YELLOW}Creating web app...${NC}"
@@ -165,3 +176,11 @@ echo "4. View application health:"
 echo "   https://$APP_URL/health"
 echo ""
 echo -e "${GREEN}Deployment script completed!${NC}"
+echo ""
+echo -e "${YELLOW}🔍 Running deployment verification...${NC}"
+if [ -f "./scripts/verify-deployment.sh" ]; then
+    ./scripts/verify-deployment.sh
+else
+    echo -e "${YELLOW}⚠️ Verification script not found. Please run manually:${NC}"
+    echo "curl -f https://$APP_URL/health"
+fi

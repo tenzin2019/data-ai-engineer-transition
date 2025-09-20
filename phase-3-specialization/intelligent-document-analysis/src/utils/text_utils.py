@@ -4,11 +4,14 @@ Text processing utility functions.
 
 import re
 import string
+import logging
 from typing import List, Dict, Tuple
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import PorterStemmer
+
+logger = logging.getLogger(__name__)
 
 # Try to import textstat, with fallback
 try:
@@ -22,20 +25,37 @@ except ImportError:
         return 10.0  # Default value
 
 # Download required NLTK data
+# Set NLTK data path if not already set
+import os
+if 'NLTK_DATA' in os.environ:
+    nltk.data.path.append(os.environ['NLTK_DATA'])
+
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    nltk.download('punkt')
+    # Only download if we have write permissions
+    try:
+        nltk.download('punkt', quiet=True)
+    except PermissionError:
+        logger.warning("Cannot download NLTK punkt data - using fallback tokenization")
 
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
-    nltk.download('stopwords')
+    # Only download if we have write permissions
+    try:
+        nltk.download('stopwords', quiet=True)
+    except PermissionError:
+        logger.warning("Cannot download NLTK stopwords data - using fallback stopwords")
 
 try:
     nltk.data.find('taggers/averaged_perceptron_tagger')
 except LookupError:
-    nltk.download('averaged_perceptron_tagger')
+    # Only download if we have write permissions
+    try:
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+    except PermissionError:
+        logger.warning("Cannot download NLTK averaged_perceptron_tagger data - using fallback POS tagging")
 
 
 def clean_text(text: str) -> str:

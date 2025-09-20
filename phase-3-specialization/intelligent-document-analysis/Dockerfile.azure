@@ -1,5 +1,6 @@
 # Azure App Service Optimized Dockerfile
-FROM python:3.11-slim
+# Explicitly specify platform for Azure App Service compatibility
+FROM --platform=linux/amd64 python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -14,15 +15,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
     WEBSITES_CONTAINER_START_TIME_LIMIT=1800 \
     PYTHONPATH=/app \
+    NLTK_DATA=/app/nltk_data \
     STREAMLIT_SERVER_PORT=8000 \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
     STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_ENABLE_CORS=false \
     STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
 
-# Install system dependencies (optimized for Azure App Service)
-RUN apt-get update && apt-get install -y \
-    --no-install-recommends \
+# Install system dependencies (optimized for Azure App Service with retry logic)
+RUN apt-get update --fix-missing && \
+    apt-get install -y --no-install-recommends --fix-missing \
     build-essential \
     curl \
     tesseract-ocr \
@@ -42,19 +44,20 @@ COPY requirements-azure.txt .
 
 # Install Python dependencies with optimizations
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements-azure.txt && \
-    pip cache purge
+    pip install --no-cache-dir -r requirements-azure.txt
 
-# Download essential NLTK data only
-RUN python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
+# Download essential NLTK data only and set data path
+RUN python -c "import nltk; nltk.download('punkt', quiet=True, download_dir='/app/nltk_data'); nltk.download('stopwords', quiet=True, download_dir='/app/nltk_data')" && \
+    chown -R appuser:appuser /app/nltk_data
 
 # Copy application code
 COPY . .
 
 # Create necessary directories with proper permissions
-RUN mkdir -p temp uploads logs && \
+RUN mkdir -p temp uploads logs data /app/temp /app/uploads /app/logs && \
     chown -R appuser:appuser /app && \
-    chmod -R 755 /app
+    chmod -R 755 /app && \
+    chmod 777 /app/temp /app/uploads /app/logs
 
 # Set permissions for scripts
 RUN chmod +x scripts/*.sh 2>/dev/null || true
@@ -62,12 +65,23 @@ RUN chmod +x scripts/*.sh 2>/dev/null || true
 # Switch to non-root user
 USER appuser
 
-# Expose port (Azure uses PORT environment variable)
-EXPOSE $PORT
+# Set environment variables for Azure App Service
+ENV WEBSITES_PORT=8000
+ENV WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
+ENV PYTHONPATH=/app
+ENV STREAMLIT_SERVER_PORT=8000
+ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
+ENV STREAMLIT_SERVER_HEADLESS=true
+ENV STREAMLIT_SERVER_ENABLE_CORS=false
+ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+ENV STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
+
+# Expose port
+EXPOSE 8000
 
 # Health check for Azure App Service
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Azure App Service startup command with optimizations
-CMD ["sh", "-c", "python -m streamlit run src/web/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false --server.maxUploadSize=200"]
+CMD ["python", "-m", "streamlit", "run", "src/web/app.py", "--server.port=8000", "--server.address=0.0.0.0", "--server.headless=true", "--server.enableCORS=false", "--server.enableXsrfProtection=false", "--server.maxUploadSize=200"]

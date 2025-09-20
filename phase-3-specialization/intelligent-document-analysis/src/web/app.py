@@ -545,8 +545,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize database
-init_database()
+# Initialize database only if not disabled
+if os.getenv("DB_DISABLED", "false").lower() != "true":
+    init_database()
+else:
+    print("✅ Database disabled, skipping initialization")
 
 # Initialize session state
 if 'current_analysis' not in st.session_state:
@@ -1026,27 +1029,51 @@ def analyze_document(uploaded_file, document_type, include_entities, include_sen
         """, unsafe_allow_html=True)
         progress_bar.progress(90)
         
-        # Save to database
-        document_id = save_document_to_db(
-            filename=uploaded_file.name,
-            original_filename=uploaded_file.name,
-            file_path=str(temp_file_path),
-            file_size=len(uploaded_file.getvalue()),
-            mime_type=uploaded_file.type,
-            document_type=document_type,
-            extracted_text=processing_result['text'],
-            text_length=len(processing_result['text']),
-            page_count=processing_result.get('page_count', 1),
-            summary=analysis_result.get('summary', ''),
-            key_phrases=analysis_result.get('key_phrases', []),
-            sentiment_score=analysis_result.get('sentiment', {}).get('score'),
-            confidence_score=analysis_result.get('confidence_score'),
-            analysis_data=analysis_result
-        )
-        
-        # Get the saved document for display
-        document_record = get_document_by_id(document_id)
-        st.session_state.current_analysis = document_record
+        # Save to database or session state
+        if os.getenv("DB_DISABLED", "false").lower() == "true":
+            # Database disabled - store in session state
+            document_record = {
+                'id': 1,  # Dummy ID
+                'filename': uploaded_file.name,
+                'original_filename': uploaded_file.name,
+                'file_size': len(uploaded_file.getvalue()),
+                'mime_type': uploaded_file.type,
+                'document_type': document_type,
+                'text_length': len(processing_result['text']),
+                'page_count': processing_result.get('page_count', 1),
+                'upload_time': datetime.now().isoformat(),
+                'analysis_result': analysis_result,
+                'analysis_options': {
+                    'include_entities': include_entities,
+                    'include_sentiment': include_sentiment,
+                    'include_summary': include_summary,
+                    'include_recommendations': include_recommendations
+                }
+            }
+            st.session_state.current_analysis = document_record
+            print("✅ Document stored in session state (database disabled)")
+        else:
+            # Database enabled - save to database
+            document_id = save_document_to_db(
+                filename=uploaded_file.name,
+                original_filename=uploaded_file.name,
+                file_path=str(temp_file_path),
+                file_size=len(uploaded_file.getvalue()),
+                mime_type=uploaded_file.type,
+                document_type=document_type,
+                extracted_text=processing_result['text'],
+                text_length=len(processing_result['text']),
+                page_count=processing_result.get('page_count', 1),
+                summary=analysis_result.get('summary', ''),
+                key_phrases=analysis_result.get('key_phrases', []),
+                sentiment_score=analysis_result.get('sentiment', {}).get('score'),
+                confidence_score=analysis_result.get('confidence_score'),
+                analysis_data=analysis_result
+            )
+            
+            # Get the saved document for display
+            document_record = get_document_by_id(document_id)
+            st.session_state.current_analysis = document_record
         
         # Step 5: Complete
         progress_bar.progress(100)
@@ -1111,8 +1138,13 @@ def analysis_results_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Get documents from database
-    documents = get_documents_from_db()
+    # Get documents from database or session state
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        # Database disabled - use session state
+        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
+    else:
+        # Database enabled - get from database
+        documents = get_documents_from_db()
     
     if not documents:
         st.markdown("""
@@ -1324,8 +1356,13 @@ def analytics_dashboard_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Get documents from database
-    documents = get_documents_from_db()
+    # Get documents from database or session state
+    if os.getenv("DB_DISABLED", "false").lower() == "true":
+        # Database disabled - use session state
+        documents = [st.session_state.current_analysis] if st.session_state.current_analysis else []
+    else:
+        # Database enabled - get from database
+        documents = get_documents_from_db()
     
     if not documents:
         st.markdown("""
