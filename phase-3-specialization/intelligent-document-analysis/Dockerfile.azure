@@ -5,14 +5,14 @@ FROM --platform=linux/amd64 python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Set environment variables for Azure App Service
+# Set environment variables for Azure App Service (consolidated)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PORT=8000 \
     WEBSITES_PORT=8000 \
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE=true \
     WEBSITES_CONTAINER_START_TIME_LIMIT=1800 \
     PYTHONPATH=/app \
     NLTK_DATA=/app/nltk_data \
@@ -20,7 +20,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
     STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_ENABLE_CORS=false \
-    STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+    STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false \
+    STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
 
 # Install system dependencies (optimized for Azure App Service with retry logic)
 RUN apt-get update --fix-missing && \
@@ -64,17 +65,6 @@ RUN chmod +x scripts/*.sh 2>/dev/null || true
 
 # Switch to non-root user
 USER appuser
-
-# Set environment variables for Azure App Service
-ENV WEBSITES_PORT=8000
-ENV WEBSITES_ENABLE_APP_SERVICE_STORAGE=true
-ENV PYTHONPATH=/app
-ENV STREAMLIT_SERVER_PORT=8000
-ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
-ENV STREAMLIT_SERVER_HEADLESS=true
-ENV STREAMLIT_SERVER_ENABLE_CORS=false
-ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
-ENV STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
 
 # Expose port
 EXPOSE 8000
