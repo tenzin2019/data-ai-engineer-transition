@@ -1645,9 +1645,18 @@ def settings_tab():
     </div>
     """, unsafe_allow_html=True)
     
-    # Check if there are documents to clear
-    documents = get_documents_from_db()
-    doc_count = len(documents) if documents else 0
+    # Check if there are documents to clear (database + session state)
+    try:
+        documents = get_documents_from_db()
+        doc_count = len(documents) if documents else 0
+        
+        # Also check session state for current analysis
+        if st.session_state.current_analysis:
+            doc_count += 1
+    except Exception as e:
+        print(f"⚠️ Error getting document count: {e}")
+        # Fallback to session state only
+        doc_count = 1 if st.session_state.current_analysis else 0
     
     if doc_count == 0:
         st.markdown("""
@@ -1669,25 +1678,46 @@ def settings_tab():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("🗑️ Clear All Analysis Data", type="secondary", key="clear_data_button", disabled=(doc_count == 0)):
-            with st.spinner("Clearing database..."):
-                if clear_all_documents_from_db():
+            with st.spinner("Clearing analysis data..."):
+                success = True
+                
+                # Clear database
+                try:
+                    if not clear_all_documents_from_db():
+                        success = False
+                        print("⚠️ Failed to clear database")
+                except Exception as e:
+                    success = False
+                    print(f"⚠️ Database clear error: {e}")
+                
+                # Clear session state
+                try:
                     st.session_state.current_analysis = None
+                    # Clear any other analysis-related session state
+                    if 'processing_status' in st.session_state:
+                        st.session_state.processing_status = None
+                    print("✅ Session state cleared")
+                except Exception as e:
+                    print(f"⚠️ Session state clear error: {e}")
+                
+                if success:
                     st.markdown("""
                     <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border-radius: 12px; border: 1px solid var(--success); margin: 1rem 0;">
                         <div style="color: var(--success); font-weight: 600; font-size: 1.1rem;">
-                            ✅ All analysis data has been cleared from database!
+                            ✅ All analysis data has been cleared successfully!
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
                     st.rerun()  # Refresh the page to update the UI
                 else:
                     st.markdown("""
-                    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%); border-radius: 12px; border: 1px solid var(--error); margin: 1rem 0;">
-                        <div style="color: var(--error); font-weight: 600; font-size: 1.1rem;">
-                            ❌ Failed to clear data from database. Please check the console for error details.
+                    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); border-radius: 12px; border: 1px solid var(--warning); margin: 1rem 0;">
+                        <div style="color: var(--warning); font-weight: 600; font-size: 1.1rem;">
+                            ⚠️ Analysis data cleared from session, but database clear had issues. Page will refresh.
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
+                    st.rerun()  # Refresh the page to update the UI
     
     st.markdown('</div>', unsafe_allow_html=True)
 
