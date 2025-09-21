@@ -3,6 +3,26 @@ import React from 'react';
 const GenAIProjects = () => {
   const genaiProjects = [
     {
+      title: 'Intelligent Document Analysis System',
+      description: 'Production-ready GenAI platform that processes complex business documents using Azure OpenAI and Document Intelligence. Successfully deployed with advanced text extraction, AI-powered analysis, and automated insight generation capabilities.',
+      tech: ['Azure OpenAI GPT-4', 'Azure Document Intelligence', 'Python', 'Streamlit', 'FastAPI', 'PostgreSQL', 'Docker', 'SQLAlchemy'],
+      image: '/placeholder-doc-analysis.jpg',
+      status: 'Completed',
+      progress: 100,
+      features: [
+        'Multi-format document processing (PDF, DOCX, XLSX, TXT)',
+        'AI-powered summarization and entity extraction',
+        'Sentiment analysis and key phrase identification',
+        'Automated recommendation generation',
+        'Real-time processing with progress tracking',
+        'Comprehensive analytics dashboard',
+        'Production-ready Docker deployment',
+        'Advanced error handling and validation'
+      ],
+      githubLink: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-3-specialization/intelligent-document-analysis',
+      demoLink: '#contact'
+    },
+    {
       title: 'AI-Powered Content Generation Platform',
       description: 'Advanced content creation system using Large Language Models for automated blog writing, social media posts, and marketing copy. Features fine-tuned models for industry-specific content generation.',
       tech: ['OpenAI GPT-4', 'LangChain', 'Python', 'FastAPI', 'Vector DB', 'RAG'],
@@ -16,26 +36,6 @@ const GenAIProjects = () => {
         'Brand voice consistency',
         'SEO-optimized output'
       ]
-    },
-    {
-      title: 'Intelligent Document Analysis System',
-      description: 'Production-ready GenAI platform that processes complex business documents using Azure OpenAI and Document Intelligence. Features advanced text extraction, AI-powered analysis, and automated insight generation with 85% completion status.',
-      tech: ['Azure OpenAI GPT-4', 'Azure Document Intelligence', 'Python', 'Streamlit', 'FastAPI', 'PostgreSQL', 'Docker', 'SQLAlchemy'],
-      image: '/placeholder-doc-analysis.jpg',
-      status: 'Near Completion',
-      progress: 85,
-      features: [
-        'Multi-format document processing (PDF, DOCX, XLSX, TXT)',
-        'AI-powered summarization and entity extraction',
-        'Sentiment analysis and key phrase identification',
-        'Automated recommendation generation',
-        'Real-time processing with progress tracking',
-        'Comprehensive analytics dashboard',
-        'Production-ready Docker deployment',
-        'Advanced error handling and validation'
-      ],
-      githubLink: 'https://github.com/tenzin2019/data-ai-engineer-transition/tree/main/phase-3-specialization/intelligent-document-analysis',
-      demoLink: '#contact'
     },
     {
       title: 'Conversational AI Assistant',
@@ -71,6 +71,8 @@ const GenAIProjects = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'Completed':
+        return 'text-green-500 bg-green-900/30 border border-green-700/50';
       case 'Under Development':
         return 'text-yellow-400 bg-yellow-900/30';
       case 'In Development':
@@ -173,9 +175,19 @@ const GenAIProjects = () => {
                 {/* Development Status */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                    <div className={`w-2 h-2 rounded-full ${
+                      project.status === 'Completed' 
+                        ? 'bg-green-500' 
+                        : project.status === 'Near Completion' 
+                        ? 'bg-green-400 animate-pulse' 
+                        : 'bg-yellow-400 animate-pulse'
+                    }`}></div>
                     <span className="text-sm text-gray-400">
-                      {project.status === 'Near Completion' ? 'Ready for Demo' : 'Active Development'}
+                      {project.status === 'Completed' 
+                        ? 'Production Ready' 
+                        : project.status === 'Near Completion' 
+                        ? 'Ready for Demo' 
+                        : 'Active Development'}
                     </span>
                   </div>
                   <div className="flex space-x-2">
@@ -191,22 +203,41 @@ const GenAIProjects = () => {
                     )}
                     <a
                       href={project.demoLink || '#contact'}
-                      className="px-4 py-2 text-sm bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/50 hover:bg-blue-600/30 transition-colors duration-200"
+                      className={`px-4 py-2 text-sm rounded-lg border transition-colors duration-200 ${
+                        project.status === 'Completed'
+                          ? 'bg-green-600/20 text-green-400 border-green-600/50 hover:bg-green-600/30'
+                          : 'bg-blue-600/20 text-blue-400 border-blue-600/50 hover:bg-blue-600/30'
+                      }`}
                     >
-                      {project.status === 'Near Completion' ? 'Request Demo' : 'Coming Soon'}
+                      {project.status === 'Completed' 
+                        ? 'Live Demo' 
+                        : project.status === 'Near Completion' 
+                        ? 'Request Demo' 
+                        : 'Coming Soon'}
                     </a>
                   </div>
                 </div>
               </div>
 
-              {/* Overlay for Under Construction */}
+              {/* Overlay for Project Status */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="bg-black/80 backdrop-blur-sm rounded-lg p-4">
-                    <p className="text-white text-sm font-medium">🚧 Under Active Development</p>
-                    <p className="text-gray-300 text-xs mt-1">
-                      This project is being developed with cutting-edge GenAI technologies
-                    </p>
+                    {project.status === 'Completed' ? (
+                      <>
+                        <p className="text-white text-sm font-medium">✅ Production Ready</p>
+                        <p className="text-gray-300 text-xs mt-1">
+                          Successfully deployed GenAI solution with full functionality
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-white text-sm font-medium">🚧 Under Active Development</p>
+                        <p className="text-gray-300 text-xs mt-1">
+                          This project is being developed with cutting-edge GenAI technologies
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

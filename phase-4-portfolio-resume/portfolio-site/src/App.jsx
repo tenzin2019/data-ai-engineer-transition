@@ -19,10 +19,9 @@ function App() {
   useEffect(() => {
     // Simulate progressive loading with meaningful messages
     const loadingSteps = [
-      { progress: 20, message: 'Loading portfolio assets...' },
-      { progress: 40, message: 'Preparing your experience...' },
-      { progress: 60, message: 'Setting up interactive elements...' },
-      { progress: 80, message: 'Almost ready...' },
+      { progress: 25, message: 'Loading portfolio assets...' },
+      { progress: 50, message: 'Preparing your experience...' },
+      { progress: 75, message: 'Setting up interactive elements...' },
       { progress: 100, message: 'Welcome!' }
     ]
 
@@ -35,9 +34,9 @@ function App() {
         currentStep++
       } else {
         clearInterval(interval)
-        setTimeout(() => setIsLoading(false), 500)
+        setTimeout(() => setIsLoading(false), 200)
       }
-    }, 300)
+    }, 150)
 
     return () => clearInterval(interval)
   }, [])
@@ -143,9 +142,17 @@ function App() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Skip Navigation for Accessibility */}
+      <a 
+        href="#main-content" 
+        className="skip-nav"
+        aria-label="Skip to main content"
+      >
+        Skip to main content
+      </a>
       <div className="fixed inset-0 bg-gradient-to-b from-blue-900/20 to-black pointer-events-none" />
       <Navbar />
-      <main className="relative z-10">
+      <main id="main-content" className="relative z-10">
         <Hero />
         <About />
         <Experience />

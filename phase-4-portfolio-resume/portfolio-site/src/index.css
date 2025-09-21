@@ -144,6 +144,39 @@ html {
   @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black;
 }
 
+/* Skip navigation for accessibility */
+.skip-nav {
+  @apply absolute top-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg transform -translate-y-full opacity-0 transition-all duration-200;
+}
+
+.skip-nav:focus {
+  @apply translate-y-0 opacity-100 z-50;
+}
+
+/* Ensure sufficient color contrast */
+.text-contrast-high {
+  color: #ffffff;
+}
+
+.text-contrast-medium {
+  color: #e5e7eb;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .loading-particle,
+  .animate-float,
+  .animate-pulse,
+  .animate-blink,
+  .animate-spin {
+    animation: none !important;
+  }
+  
+  .transform {
+    transform: none !important;
+  }
+}
+
 /* Loading skeleton animation */
 @keyframes shimmer {
   0% {
@@ -178,6 +211,29 @@ html {
 ::selection {
   background: rgba(59, 130, 246, 0.3);
   color: white;
+}
+
+/* Touch targets for mobile */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Mobile-specific styles */
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  /* Increase tap target size on mobile */
+  button, a {
+    padding: 12px 16px;
+  }
 }
 
 /* Reduced motion for accessibility */

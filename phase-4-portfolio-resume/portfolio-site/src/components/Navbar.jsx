@@ -138,7 +138,10 @@ const Navbar = () => {
           <div className="md:hidden">
             <button 
               onClick={toggleMobileMenu}
-              className="text-gray-300 hover:text-white p-2 transition-colors duration-200"
+              className="text-gray-300 hover:text-white p-3 transition-colors duration-200 touch-target focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded-lg"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             >
               {isMobileMenuOpen ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,13 +159,14 @@ const Navbar = () => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden relative z-50">
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-black/95 backdrop-blur-lg border-t border-gray-700">
+        <div className="md:hidden relative z-50" id="mobile-menu">
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-black/95 backdrop-blur-lg border-t border-gray-700" role="navigation" aria-label="Mobile navigation menu">
             {navItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => handleNavLinkClick(item.id)}
-                className="block w-full text-left text-gray-300 hover:text-white px-3 py-2 text-base font-medium transition-colors duration-200"
+                className="block w-full text-left text-gray-300 hover:text-white px-4 py-3 text-base font-medium transition-colors duration-200 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black rounded-lg"
+                aria-label={`Navigate to ${item.name} section`}
               >
                 {item.name}
               </button>
