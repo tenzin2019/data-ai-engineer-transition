@@ -1,0 +1,600 @@
+"""
+AI-powered document analysis using Azure OpenAI services.
+"""
+
+import json
+import logging
+import re
+from typing import Dict, List, Optional, Any
+from openai import AzureOpenAI
+from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.core.credentials import AzureKeyCredential
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from config.settings import settings
+from utils.text_utils import clean_text, chunk_text
+from utils.model_selector import model_selector
+
+logger = logging.getLogger(__name__)
+
+
+class AIAnalyzer:
+    """AI-powered document analysis using Azure OpenAI and Document Intelligence."""
+    
+    def __init__(self):
+        """Initialize the AI analyzer with Azure services."""
+        self.openai_client = None
+        self.document_intelligence_client = None
+        
+        # Initialize Azure OpenAI client
+        if settings.azure_openai_endpoint and settings.azure_openai_api_key:
+            self.openai_client = AzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_api_version
+            )
+        
+        # Initialize Document Intelligence client
+        if (settings.azure_document_intelligence_endpoint and 
+            settings.azure_document_intelligence_api_key):
+            self.document_intelligence_client = DocumentIntelligenceClient(
+                endpoint=settings.azure_document_intelligence_endpoint,
+                credential=AzureKeyCredential(settings.azure_document_intelligence_api_key)
+            )
+    
+    def analyze_document(self, text: str, document_type: str = "general", max_tokens: int = None, temperature: float = None, 
+                        include_entities: bool = True, include_sentiment: bool = True, 
+                        include_summary: bool = True, include_recommendations: bool = True) -> Dict[str, Any]:
+        """
+        Perform comprehensive AI analysis on document text.
+        
+        Args:
+            text: Document text content
+            document_type: Type of document for context-specific analysis
+            max_tokens: Maximum tokens for AI response (uses settings default if None)
+            temperature: Temperature for AI response (uses settings default if None)
+            include_entities: Whether to extract entities and key phrases
+            include_sentiment: Whether to perform sentiment analysis
+            include_summary: Whether to generate summary
+            include_recommendations: Whether to generate recommendations
+            
+        Returns:
+            Dictionary containing analysis results
+        """
+        if not self.openai_client:
+            raise ValueError("Azure OpenAI client not initialized")
+        
+        # Use passed parameters or fall back to settings
+        max_tokens = max_tokens if max_tokens is not None else settings.max_tokens
+        temperature = temperature if temperature is not None else settings.temperature
+        
+        # Clean and prepare text
+        cleaned_text = clean_text(text)
+        
+        # Smart model selection based on document characteristics
+        selected_model = model_selector.select_model(
+            document_type=document_type,
+            text_length=len(cleaned_text),
+            complexity_score=self._estimate_complexity(cleaned_text, document_type)
+        )
+        
+        logger.info(f"Selected model: {selected_model} for {document_type} document")
+        
+        # Split text into chunks if too long
+        chunks = chunk_text(cleaned_text, max_length=settings.max_document_length)
+        
+        analysis_results = {
+            'summary': '',
+            'key_phrases': [],
+            'entities': [],
+            'sentiment': {'score': 0.0, 'label': 'neutral'},
+            'topics': [],
+            'insights': [],
+            'recommendations': [],
+            'confidence_score': 0.0
+        }
+        
+        try:
+            # Process each chunk
+            chunk_results = []
+            for i, chunk in enumerate(chunks):
+                logger.info(f"Processing chunk {i+1}/{len(chunks)} with {selected_model}")
+                chunk_result = self._analyze_text_chunk(chunk, document_type, selected_model, 
+                                                      include_entities, include_sentiment, 
+                                                      include_summary, include_recommendations,
+                                                      max_tokens, temperature)
+                chunk_results.append(chunk_result)
+            
+            # Combine results from all chunks
+            analysis_results = self._combine_chunk_results(chunk_results)
+            
+            # Generate final insights and recommendations
+            analysis_results['insights'] = self._generate_insights(analysis_results, document_type)
+            analysis_results['recommendations'] = self._generate_recommendations(analysis_results, document_type)
+            
+            # Calculate overall confidence score
+            analysis_results['confidence_score'] = self._calculate_confidence_score(analysis_results)
+            
+        except Exception as e:
+            logger.error(f"Error in document analysis: {str(e)}")
+            raise
+        
+        return analysis_results
+    
+    def _estimate_complexity(self, text: str, document_type: str) -> float:
+        """Estimate document complexity score (0.0 = simple, 1.0 = complex)."""
+        complexity_indicators = 0
+        total_indicators = 0
+        
+        # Length-based complexity
+        if len(text) > 10000:
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Technical terms
+        technical_terms = ['algorithm', 'implementation', 'architecture', 'framework', 'methodology']
+        if any(term in text.lower() for term in technical_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Legal/financial terms
+        legal_terms = ['contract', 'agreement', 'liability', 'compliance', 'regulation']
+        if any(term in text.lower() for term in legal_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Medical terms
+        medical_terms = ['diagnosis', 'treatment', 'symptom', 'patient', 'clinical']
+        if any(term in text.lower() for term in medical_terms):
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Document type complexity
+        if document_type.lower() in ['legal', 'financial', 'technical', 'medical']:
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        # Table/formula presence
+        if '|' in text or '=' in text or 'formula' in text.lower():
+            complexity_indicators += 1
+        total_indicators += 1
+        
+        return complexity_indicators / total_indicators if total_indicators > 0 else 0.5
+    
+    def _analyze_text_chunk(self, text: str, document_type: str, model_name: str = None, 
+                           include_entities: bool = True, include_sentiment: bool = True, 
+                           include_summary: bool = True, include_recommendations: bool = True,
+                           max_tokens: int = None, temperature: float = None) -> Dict[str, Any]:
+        """Analyze a single text chunk."""
+        
+        # Check if Azure OpenAI is available
+        if not self.openai_client or not settings.azure_openai_api_key or settings.azure_openai_api_key == "your-azure-openai-api-key":
+            logger.warning("Azure OpenAI not configured, using fallback analysis")
+            return self._fallback_analysis(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
+        
+        # Use provided model or default
+        model_to_use = model_name or settings.azure_openai_deployment_name
+        
+        # Use passed parameters or fall back to settings
+        max_tokens = max_tokens if max_tokens is not None else settings.max_tokens
+        temperature = temperature if temperature is not None else settings.temperature
+        
+        # Create analysis prompt based on document type and requested analysis types
+        prompt = self._create_analysis_prompt(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
+        
+        try:
+            response = self.openai_client.chat.completions.create(
+                model=model_to_use,
+                messages=[
+                    {"role": "system", "content": "You are an expert document analyst. Provide detailed, accurate analysis in JSON format."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                response_format={"type": "json_object"}
+            )
+            
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error analyzing text chunk: {str(e)}")
+            logger.warning("Falling back to local analysis due to Azure OpenAI error")
+            return self._fallback_analysis(text, document_type, include_entities, include_sentiment, include_summary, include_recommendations)
+    
+    def _create_analysis_prompt(self, text: str, document_type: str, include_entities: bool = True, 
+                               include_sentiment: bool = True, include_summary: bool = True, 
+                               include_recommendations: bool = True) -> str:
+        """Create analysis prompt based on document type and requested analysis types."""
+        
+        # Build the JSON structure based on what's requested
+        json_fields = []
+        
+        if include_summary:
+            json_fields.append('"summary": "A concise 2-3 sentence summary of the document"')
+        
+        if include_entities:
+            json_fields.extend([
+                '"key_phrases": ["list", "of", "important", "phrases"]',
+                '"entities": [{"text": "entity name", "type": "PERSON|ORGANIZATION|DATE|LOCATION|OTHER", "confidence": 0.9}]',
+                '"topics": ["main", "topics", "covered"]'
+            ])
+        
+        if include_sentiment:
+            json_fields.append('"sentiment": {"score": 0.5, "label": "positive|negative|neutral"}')
+        
+        if include_recommendations:
+            json_fields.extend([
+                '"insights": ["key", "insights", "from", "analysis"]',
+                '"recommendations": ["actionable", "recommendations"]'
+            ])
+        
+        json_structure = "{\n    " + ",\n    ".join(json_fields) + "\n}"
+        
+        base_prompt = f"""
+        Analyze the following {document_type} document text and provide analysis in JSON format.
+        
+        Text to analyze:
+        {text[:4000]}  # Limit text length for prompt
+        
+        Please provide the analysis in the following JSON structure:
+        {json_structure}
+        """
+        
+        # Add document-type specific instructions
+        if document_type == "legal":
+            base_prompt += """
+            Focus on legal terms, clauses, obligations, and compliance requirements.
+            """
+        elif document_type == "financial":
+            base_prompt += """
+            Focus on financial data, metrics, trends, and business implications.
+            """
+        elif document_type == "technical":
+            base_prompt += """
+            Focus on technical specifications, requirements, and implementation details.
+            """
+        elif document_type == "medical":
+            base_prompt += """
+            Focus on medical terms, diagnoses, treatments, and patient information.
+            """
+        
+        return base_prompt
+    
+    def _fallback_analysis(self, text: str, document_type: str, include_entities: bool = True, 
+                          include_sentiment: bool = True, include_summary: bool = True, 
+                          include_recommendations: bool = True) -> Dict[str, Any]:
+        """Fallback analysis using local processing when Azure OpenAI is not available."""
+        
+        result = {
+            'summary': '',
+            'key_phrases': [],
+            'entities': [],
+            'sentiment': {'score': 0.0, 'label': 'neutral'},
+            'topics': [],
+            'insights': [],
+            'recommendations': []
+        }
+        
+        # Basic text processing
+        words = text.split()
+        sentences = text.split('.')
+        
+        # Generate summary
+        if include_summary and sentences:
+            # Take first 2-3 sentences as summary
+            summary_sentences = sentences[:3]
+            result['summary'] = '. '.join([s.strip() for s in summary_sentences if s.strip()]) + '.'
+        
+        # Extract key phrases (simple approach)
+        if include_entities:
+            # Find capitalized words and common phrases
+            key_phrases = []
+            entities = []
+            
+            # Simple entity extraction
+            import re
+            
+            # Find capitalized words (potential entities)
+            capitalized_words = re.findall(r'\b[A-Z][a-z]+\b', text)
+            word_counts = {}
+            for word in capitalized_words:
+                if len(word) > 2:  # Filter out short words
+                    word_counts[word] = word_counts.get(word, 0) + 1
+            
+            # Get most frequent capitalized words as entities
+            sorted_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
+            for word, count in sorted_words[:10]:
+                entities.append({
+                    'text': word,
+                    'type': 'PERSON' if word.istitle() else 'ORGANIZATION',
+                    'confidence': min(0.9, count / len(words) * 100)
+                })
+            
+            # Extract key phrases (2-3 word combinations)
+            for i in range(len(words) - 2):
+                phrase = ' '.join(words[i:i+3])
+                if len(phrase) > 10 and phrase.lower() not in ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'man', 'oil', 'sit', 'try', 'use', 'why']:
+                    key_phrases.append(phrase)
+            
+            result['key_phrases'] = list(set(key_phrases))[:15]
+            result['entities'] = entities[:20]
+            
+            # Extract topics (based on common words)
+            common_words = {}
+            for word in words:
+                word_lower = word.lower().strip('.,!?;:"()[]{}')
+                if len(word_lower) > 4 and word_lower not in ['this', 'that', 'with', 'have', 'will', 'from', 'they', 'know', 'want', 'been', 'good', 'much', 'some', 'time', 'very', 'when', 'come', 'here', 'just', 'like', 'long', 'make', 'many', 'over', 'such', 'take', 'than', 'them', 'well', 'were']:
+                    common_words[word_lower] = common_words.get(word_lower, 0) + 1
+            
+            sorted_topics = sorted(common_words.items(), key=lambda x: x[1], reverse=True)
+            result['topics'] = [topic for topic, count in sorted_topics[:10]]
+        
+        # Basic sentiment analysis
+        if include_sentiment:
+            positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'positive', 'happy', 'success', 'win', 'best', 'better', 'improve', 'love', 'like', 'enjoy', 'pleased', 'satisfied', 'perfect', 'outstanding']
+            negative_words = ['bad', 'terrible', 'awful', 'horrible', 'negative', 'sad', 'fail', 'lose', 'worst', 'worse', 'problem', 'issue', 'error', 'hate', 'dislike', 'angry', 'frustrated', 'disappointed', 'broken', 'wrong']
+            
+            text_lower = text.lower()
+            positive_count = sum(1 for word in positive_words if word in text_lower)
+            negative_count = sum(1 for word in negative_words if word in text_lower)
+            
+            if positive_count > negative_count:
+                sentiment_score = 0.3
+                sentiment_label = 'positive'
+            elif negative_count > positive_count:
+                sentiment_score = -0.3
+                sentiment_label = 'negative'
+            else:
+                sentiment_score = 0.0
+                sentiment_label = 'neutral'
+            
+            result['sentiment'] = {
+                'score': sentiment_score,
+                'label': sentiment_label
+            }
+        
+        # Generate basic insights and recommendations
+        if include_recommendations:
+            insights = []
+            recommendations = []
+            
+            # Document length insights
+            if len(text) > 5000:
+                insights.append("Document is comprehensive and detailed")
+                recommendations.append("Review the full document for complete understanding")
+            elif len(text) < 500:
+                insights.append("Document is brief and concise")
+                recommendations.append("Consider if additional details are needed")
+            
+            # Entity insights
+            if result['entities']:
+                insights.append(f"Document contains {len(result['entities'])} key entities")
+                recommendations.append("Review identified entities for relevance")
+            
+            # Topic insights
+            if result['topics']:
+                insights.append(f"Document covers {len(result['topics'])} main topics")
+                recommendations.append("Focus on the most frequently mentioned topics")
+            
+            # Document type specific insights
+            if document_type == 'legal':
+                insights.append("Legal document analysis completed")
+                recommendations.append("Consult with legal team for detailed review")
+            elif document_type == 'financial':
+                insights.append("Financial document analysis completed")
+                recommendations.append("Schedule financial review meeting")
+            elif document_type == 'technical':
+                insights.append("Technical document analysis completed")
+                recommendations.append("Review technical specifications with experts")
+            
+            result['insights'] = insights
+            result['recommendations'] = recommendations
+        
+        return result
+    
+    def _combine_chunk_results(self, chunk_results: List[Dict]) -> Dict[str, Any]:
+        """Combine results from multiple text chunks."""
+        
+        combined = {
+            'summary': '',
+            'key_phrases': [],
+            'entities': [],
+            'sentiment': {'score': 0.0, 'label': 'neutral'},
+            'topics': [],
+            'insights': [],
+            'recommendations': []
+        }
+        
+        # Combine summaries
+        summaries = [r.get('summary', '') for r in chunk_results if r.get('summary')]
+        if summaries:
+            combined['summary'] = self._summarize_summaries(summaries)
+        
+        # Combine key phrases (remove duplicates)
+        all_phrases = []
+        for result in chunk_results:
+            all_phrases.extend(result.get('key_phrases', []))
+        combined['key_phrases'] = list(set(all_phrases))[:20]  # Top 20 unique phrases
+        
+        # Combine entities (merge similar entities)
+        all_entities = []
+        for result in chunk_results:
+            all_entities.extend(result.get('entities', []))
+        combined['entities'] = self._merge_entities(all_entities)
+        
+        # Calculate average sentiment
+        sentiments = [r.get('sentiment', {}) for r in chunk_results if r.get('sentiment')]
+        if sentiments:
+            avg_score = sum(s.get('score', 0) for s in sentiments) / len(sentiments)
+            combined['sentiment'] = {
+                'score': avg_score,
+                'label': 'positive' if avg_score > 0.1 else 'negative' if avg_score < -0.1 else 'neutral'
+            }
+        
+        # Combine topics
+        all_topics = []
+        for result in chunk_results:
+            all_topics.extend(result.get('topics', []))
+        combined['topics'] = list(set(all_topics))[:10]  # Top 10 unique topics
+        
+        return combined
+    
+    def _summarize_summaries(self, summaries: List[str]) -> str:
+        """Create a final summary from multiple chunk summaries."""
+        if not summaries:
+            return ""
+        
+        if len(summaries) == 1:
+            return summaries[0]
+        
+        # Combine summaries and create a final summary
+        combined_text = " ".join(summaries)
+        
+        try:
+            response = self.openai_client.chat.completions.create(
+                model=settings.azure_openai_deployment_name,
+                messages=[
+                    {"role": "system", "content": "You are an expert at creating concise summaries. Create a 2-3 sentence summary that captures the main points."},
+                    {"role": "user", "content": f"Create a concise summary of the following text:\n\n{combined_text}"}
+                ],
+                max_tokens=200,
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"Error creating final summary: {str(e)}")
+            return summaries[0]  # Return first summary as fallback
+    
+    def _merge_entities(self, entities: List[Dict]) -> List[Dict]:
+        """Merge similar entities and remove duplicates."""
+        if not entities:
+            return []
+        
+        # Group entities by text (case-insensitive)
+        entity_groups = {}
+        for entity in entities:
+            text = entity.get('text', '').lower()
+            if text not in entity_groups:
+                entity_groups[text] = []
+            entity_groups[text].append(entity)
+        
+        # Merge entities in each group
+        merged_entities = []
+        for text, group in entity_groups.items():
+            if not group:
+                continue
+            
+            # Use the entity with highest confidence
+            best_entity = max(group, key=lambda x: x.get('confidence', 0))
+            
+            # Update confidence to average of all instances
+            avg_confidence = sum(e.get('confidence', 0) for e in group) / len(group)
+            best_entity['confidence'] = avg_confidence
+            best_entity['count'] = len(group)  # Number of occurrences
+            
+            merged_entities.append(best_entity)
+        
+        # Sort by confidence and return top entities
+        merged_entities.sort(key=lambda x: x.get('confidence', 0), reverse=True)
+        return merged_entities[:50]  # Top 50 entities
+    
+    def _generate_insights(self, analysis_results: Dict, document_type: str) -> List[str]:
+        """Generate insights based on analysis results."""
+        insights = []
+        
+        # Sentiment insights
+        sentiment = analysis_results.get('sentiment', {})
+        if sentiment.get('score', 0) > 0.3:
+            insights.append("Document shows positive sentiment overall")
+        elif sentiment.get('score', 0) < -0.3:
+            insights.append("Document shows negative sentiment overall")
+        
+        # Entity insights
+        entities = analysis_results.get('entities', [])
+        if entities:
+            entity_types = {}
+            for entity in entities:
+                entity_type = entity.get('type', 'OTHER')
+                entity_types[entity_type] = entity_types.get(entity_type, 0) + 1
+            
+            most_common_type = max(entity_types.items(), key=lambda x: x[1])
+            insights.append(f"Document contains {most_common_type[1]} {most_common_type[0].lower()} entities")
+        
+        # Topic insights
+        topics = analysis_results.get('topics', [])
+        if len(topics) > 5:
+            insights.append("Document covers multiple diverse topics")
+        elif len(topics) <= 2:
+            insights.append("Document is focused on specific topics")
+        
+        # Document type specific insights
+        if document_type == "legal":
+            insights.append("Legal document analysis completed")
+        elif document_type == "financial":
+            insights.append("Financial document analysis completed")
+        
+        return insights
+    
+    def _generate_recommendations(self, analysis_results: Dict, document_type: str) -> List[str]:
+        """Generate actionable recommendations based on analysis."""
+        recommendations = []
+        
+        # Sentiment-based recommendations
+        sentiment = analysis_results.get('sentiment', {})
+        if sentiment.get('score', 0) < -0.3:
+            recommendations.append("Consider reviewing negative aspects mentioned in the document")
+        
+        # Entity-based recommendations
+        entities = analysis_results.get('entities', [])
+        person_entities = [e for e in entities if e.get('type') == 'PERSON']
+        if person_entities:
+            recommendations.append(f"Follow up with {len(person_entities)} key individuals mentioned")
+        
+        # Topic-based recommendations
+        topics = analysis_results.get('topics', [])
+        if 'compliance' in [t.lower() for t in topics]:
+            recommendations.append("Review compliance requirements and ensure adherence")
+        
+        if 'deadline' in [t.lower() for t in topics]:
+            recommendations.append("Check for important deadlines and create action items")
+        
+        # Document type specific recommendations
+        if document_type == "legal":
+            recommendations.append("Consult with legal team for contract review")
+        elif document_type == "financial":
+            recommendations.append("Schedule financial review meeting")
+        
+        return recommendations
+    
+    def _calculate_confidence_score(self, analysis_results: Dict) -> float:
+        """Calculate overall confidence score for the analysis."""
+        confidence_factors = []
+        
+        # Entity confidence
+        entities = analysis_results.get('entities', [])
+        if entities:
+            avg_entity_confidence = sum(e.get('confidence', 0) for e in entities) / len(entities)
+            confidence_factors.append(avg_entity_confidence)
+        
+        # Sentiment confidence (based on score magnitude)
+        sentiment = analysis_results.get('sentiment', {})
+        sentiment_score = abs(sentiment.get('score', 0))
+        confidence_factors.append(sentiment_score)
+        
+        # Content richness (based on number of key phrases and topics)
+        key_phrases = len(analysis_results.get('key_phrases', []))
+        topics = len(analysis_results.get('topics', []))
+        content_richness = min(1.0, (key_phrases + topics) / 20)  # Normalize to 0-1
+        confidence_factors.append(content_richness)
+        
+        # Calculate weighted average
+        if confidence_factors:
+            return sum(confidence_factors) / len(confidence_factors)
+        else:
+            return 0.5  # Default confidence

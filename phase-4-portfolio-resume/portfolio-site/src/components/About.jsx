@@ -39,7 +39,7 @@ const About = () => {
                   Whether it’s building ML models, automating workflows, or driving insights, I focus on solutions that deliver lasting business impact—not just experiments.
                 </p>
                 <p>
-                  With a Master’s in IT with AI specialization and 4+ years of experience, I build real-world AI and data science solutions that go from idea to deployment.
+                  With a Master's in IT with AI specialization and 5+ years of experience, I build real-world AI and data science solutions that go from idea to deployment.
                 </p>
               </div>
             </div>
@@ -108,7 +108,7 @@ const About = () => {
                 </div>
                 <div className="flex items-start">
                   <span className="text-purple-500 mr-3 mt-1">▸</span>
-                  <span className="text-gray-300"><span className="text-white font-semibold">4+ years</span> building production ML systems</span>
+                  <span className="text-gray-300"><span className="text-white font-semibold">5+ years</span> building production ML systems</span>
                 </div>
                 <div className="flex items-start">
                   <span className="text-green-500 mr-3 mt-1">▸</span>

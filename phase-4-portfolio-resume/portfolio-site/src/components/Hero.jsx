@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 const Hero = () => {
   const canvasRef = useRef(null);
   const [text, setText] = useState('');
-  const fullText = "Data Scientist → AI Engineer";
+  const fullText = "Data Science & AI Engineering";
   const [isTyping, setIsTyping] = useState(true);
   const [showTrustIndicators, setShowTrustIndicators] = useState(false);
 
@@ -143,7 +143,7 @@ const Hero = () => {
               </span>
               <span className="flex items-center">
                 <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                4+ Years Experience
+                5+ Years Experience
               </span>
               <span className="flex items-center">
                 <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>

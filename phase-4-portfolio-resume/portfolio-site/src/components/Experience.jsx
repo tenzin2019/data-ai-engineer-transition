@@ -27,15 +27,7 @@ const Experience = () => {
     {
       title: "Data Scientist",
       company: "Fair Work Commission",
-      period: "July 2023 - Present (2 years)",
-      location: "Canberra, Australian Capital Territory, Australia",
-      description: "",
-      achievements: []
-    },
-    {
-      title: "Junior Data Scientist",
-      company: "Fair Work Commission",
-      period: "July 2021 - July 2023 (2 years 1 month)",
+      period: "July 2021 - Present (4 years 2 months) ",
       location: "Canberra, Australian Capital Territory, Australia",
       description: "",
       achievements: []

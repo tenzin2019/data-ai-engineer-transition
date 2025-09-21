@@ -125,7 +125,7 @@ function App() {
             </p>
             <div className="text-gray-400 text-xs space-y-1">
               <p>• I specialize in Data Science & AI Engineering</p>
-              <p>• 4+ years of experience in ML & cloud technologies</p>
+              <p>• 5+ years of experience in ML & cloud technologies</p>
               <p>• Passionate about building scalable AI solutions</p>
             </div>
           </div>

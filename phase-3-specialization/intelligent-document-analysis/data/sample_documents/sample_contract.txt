@@ -1,0 +1,47 @@
+SOFTWARE LICENSE AGREEMENT
+
+This Software License Agreement ("Agreement") is entered into on January 15, 2024, between TechCorp Solutions, Inc., a Delaware corporation ("Licensor"), and DataFlow Analytics LLC, a California limited liability company ("Licensee").
+
+1. GRANT OF LICENSE
+Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee a non-exclusive, non-transferable license to use the Intelligent Document Analysis Software ("Software") for internal business purposes only.
+
+2. LICENSE RESTRICTIONS
+Licensee shall not:
+a) Copy, modify, or create derivative works of the Software
+b) Reverse engineer, decompile, or disassemble the Software
+c) Distribute, sublicense, or transfer the Software to third parties
+d) Use the Software for competitive analysis or benchmarking
+
+3. PAYMENT TERMS
+Licensee agrees to pay Licensor a license fee of $50,000 annually, payable in advance on the anniversary date of this Agreement. Late payments shall incur a 1.5% monthly interest charge.
+
+4. INTELLECTUAL PROPERTY
+All rights, title, and interest in and to the Software, including all intellectual property rights, remain the exclusive property of Licensor. This Agreement does not grant Licensee any ownership rights in the Software.
+
+5. CONFIDENTIALITY
+Both parties agree to maintain the confidentiality of all proprietary information disclosed during the term of this Agreement. Confidential information includes but is not limited to technical specifications, business strategies, and customer data.
+
+6. TERM AND TERMINATION
+This Agreement shall commence on the Effective Date and continue for a period of three (3) years, unless terminated earlier in accordance with the provisions herein. Either party may terminate this Agreement with thirty (30) days written notice.
+
+7. WARRANTY AND DISCLAIMER
+Licensor warrants that the Software will perform substantially in accordance with its documentation for a period of ninety (90) days from delivery. EXCEPT AS EXPRESSLY SET FORTH HEREIN, THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+8. LIMITATION OF LIABILITY
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT, REGARDLESS OF THE THEORY OF LIABILITY.
+
+9. GOVERNING LAW
+This Agreement shall be governed by and construed in accordance with the laws of the State of California, without regard to its conflict of law principles.
+
+10. ENTIRE AGREEMENT
+This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, or agreements relating to the subject matter hereof.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+LICENSOR: TechCorp Solutions, Inc.
+By: John Smith, CEO
+Date: January 15, 2024
+
+LICENSEE: DataFlow Analytics LLC
+By: Sarah Johnson, CTO
+Date: January 15, 2024
