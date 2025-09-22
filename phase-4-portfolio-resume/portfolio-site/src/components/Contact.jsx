@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { validateForm, isSpam } from '../utils/formValidation';
+import { trackContactEvent } from '../utils/analytics';
 import ReCAPTCHA from 'react-google-recaptcha';
 
 const RECAPTCHA_SITE_KEY = '6LclOoMrAAAAAGxgT_g-xLFtUlpQ3440dIkv11qJ';
@@ -65,6 +66,9 @@ const Contact = () => {
     setIsSubmitting(true);
     setSubmitStatus(null);
 
+    // Track form submission attempt
+    trackContactEvent('form_submit_attempt');
+
     // Validate form
     const { isValid, errors: validationErrors, sanitizedData } = validateForm(formData);
     
@@ -112,8 +116,13 @@ const Contact = () => {
       setFormData({ name: '', email: '', message: '', honeypot: '' });
       setRecaptchaToken(null);
       if (recaptchaRef.current) recaptchaRef.current.reset();
+      
+      // Track successful form submission
+      trackContactEvent('form_submit_success');
     } catch {
       setSubmitStatus('error');
+      // Track form submission error
+      trackContactEvent('form_submit_error');
     } finally {
       setIsSubmitting(false);
     }

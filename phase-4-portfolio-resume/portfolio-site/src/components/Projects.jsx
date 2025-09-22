@@ -1,4 +1,5 @@
 import React from 'react';
+import { trackProjectView } from '../utils/analytics';
 
 const Projects = () => {
   const projects = [
@@ -139,6 +140,7 @@ const Projects = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-4 py-2 text-sm bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/50 hover:bg-blue-600/30 transition-colors duration-200"
+                    onClick={() => trackProjectView(project.title)}
                   >
                     View Project
                   </a>

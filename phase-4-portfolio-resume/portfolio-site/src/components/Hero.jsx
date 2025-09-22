@@ -194,7 +194,7 @@ const Hero = () => {
         </div>
 
         {/* Social Links with Enhanced Hover Effects */}
-        <div className="flex justify-center space-x-6 mb-8">
+        <div className="flex justify-center space-x-6 mb-6">
           <a
             href="https://github.com/tenzin2019"
             target="_blank"
@@ -217,10 +217,21 @@ const Hero = () => {
           </a>
         </div>
 
-        {/* Scroll Indicator with Enhanced Animation */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2">
-          <div className="flex flex-col items-center space-y-2">
-            <span className="text-gray-400 text-xs animate-scroll-pulse">scroll down to explore</span>
+        {/* Scroll Indicator with Enhanced Animation - Positioned below social icons */}
+        <div className="flex flex-col items-center space-y-2 mt-4">
+          <span className="text-gray-400 text-xs sm:text-sm animate-scroll-pulse text-center px-2">
+            scroll down to explore
+          </span>
+          <div className="animate-bounce">
+            <svg 
+              className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
           </div>
         </div>
       </div>

@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { trackSkillsInteraction } from '../utils/analytics';
 
 // Random skill levels - acknowledging the Dunning-Kruger effect
 const getRandomLevel = () => Math.floor(Math.random() * 29) + 56; // 56-84%
 
 const Skills = () => {
+  // Track skills section interaction when component mounts
+  useEffect(() => {
+    trackSkillsInteraction();
+  }, []);
+
   const skillCategories = [
     {
       category: 'AI & Machine Learning',

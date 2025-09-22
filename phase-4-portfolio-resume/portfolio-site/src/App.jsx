@@ -10,6 +10,7 @@ import Education from './components/Education'
 import Certification from './components/Certification'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
+import { initGA, trackPageView } from './utils/analytics'
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
@@ -17,6 +18,12 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState('Initializing...')
 
   useEffect(() => {
+    // Initialize Google Analytics
+    initGA();
+    
+    // Track initial page view
+    trackPageView(window.location.href, 'Portfolio - Tenzin Jamyang');
+
     // Simulate progressive loading with meaningful messages
     const loadingSteps = [
       { progress: 25, message: 'Loading portfolio assets...' },
