@@ -2,9 +2,17 @@ import React from 'react';
 
 const About = () => {
   return (
-    <section id="about" className="py-20 bg-black">
+    <section 
+      id="about" 
+      className="py-20 bg-black"
+      aria-labelledby="about-heading"
+      role="region"
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+        <h2 
+          id="about-heading"
+          className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text"
+        >
           About Me
         </h2>
         
@@ -39,7 +47,7 @@ const About = () => {
                   Whether it’s building ML models, automating workflows, or driving insights, I focus on solutions that deliver lasting business impact—not just experiments.
                 </p>
                 <p>
-                  With a Master's in IT with AI specialization and 5+ years of experience, I build real-world AI and data science solutions that go from idea to deployment.
+                  With a Master's in ICT with AI specialization and 5+ years of experience, I build real-world AI and data science solutions that go from idea to deployment.
                 </p>
               </div>
             </div>

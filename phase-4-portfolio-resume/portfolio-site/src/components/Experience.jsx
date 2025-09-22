@@ -30,7 +30,16 @@ const Experience = () => {
       period: "July 2021 - Present (4 years 2 months) ",
       location: "Canberra, Australian Capital Territory, Australia",
       description: "",
-      achievements: []
+      achievements: [
+        "Led GenAI/LLM solutions with RAG & safety features",
+        "Built ML APIs with PyTorch & FastAPI",
+        "Created NLP/IR pipelines for entity extraction & search", 
+        "Scaled Document AI using Azure with PII redaction",
+        "Built data pipelines for ETL/ELT processing",
+        "Implemented MLOps with monitoring & alerts",
+        "Managed security via Key Vault & RBAC",
+        "Led cross-functional teams & delivered BI dashboards"
+      ]
     },
     {
       title: "Data Scientist",
@@ -39,13 +48,12 @@ const Experience = () => {
       location: "Sydney, New South Wales, Australia",
       description: "",
       achievements: [
-        "Led extensive data mining operations",
-        "Developed and maintained data pipelines",
-        "Collaborated with cross-functional teams",
-        "Implemented data visualization tools",
-        "Optimized data processing workflows",
-        "Developed and maintained data pipelines",
-        "Collaborated with cross-functional teams",
+        "Built OCR & web-scraping automation",
+        "Created COVID-19 prediction models",
+        "Managed real-time data pipelines",
+        "Collaborated with medical professionals on product development"
+
+
       ]
     },
     {
@@ -54,28 +62,42 @@ const Experience = () => {
       period: "November 2019 - December 2019 (2 months)",
       location: "Gregory Hills, NSW",
       description: "",
-      achievements: []
+      achievements: [
+        "Delivered project deliverables on time.",
+        "Proposed and implemented marketing campaigns.",
+        "Collaborated with stakeholders to enhance business processes"
+      ]
     }
   ];
 
   return (
-    <section id="experience" className="py-20 bg-black">
+    <section 
+      id="experience" 
+      className="py-20 bg-black"
+      aria-labelledby="experience-heading"
+      role="region"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
+        <h2 
+          id="experience-heading"
+          className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text"
+        >
           Career Journey
         </h2>
         
         {/* Mobile-first timeline layout */}
-        <div className="space-y-8 md:hidden">
+        <div className="space-y-8 md:hidden" role="list" aria-label="Work experience timeline">
           {experiences.map((exp, index) => (
-            <div
+            <article
               key={index}
-              className="timeline-item opacity-0 bg-gray-900 rounded-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              className="timeline-item opacity-0 bg-gray-900 rounded-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:ring-offset-black"
+              role="listitem"
+              aria-labelledby={`job-title-mobile-${index}`}
             >
               <div className="flex flex-col space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="text-xl font-bold text-white">{exp.title}</h3>
-                  <span className="text-sm text-blue-400 mt-1 sm:mt-0">{exp.period}</span>
+                  <h3 id={`job-title-mobile-${index}`} className="text-xl font-bold text-white">{exp.title}</h3>
+                  <time className="text-sm text-blue-400 mt-1 sm:mt-0" aria-label={`Employment period: ${exp.period}`}>{exp.period}</time>
                 </div>
                 <h4 className="text-lg text-gray-300">{exp.company}</h4>
                 <p className="text-gray-400 text-sm">{exp.location}</p>
@@ -83,49 +105,58 @@ const Experience = () => {
                   <p className="text-gray-400">{exp.description}</p>
                 )}
                 {exp.achievements.length > 0 && (
-                  <ul className="space-y-2 mt-4">
-                    {exp.achievements.map((achievement, idx) => (
-                      <li key={idx} className="flex items-start">
-                        <svg
-                          className="w-4 h-4 text-blue-500 mr-2 mt-1 flex-shrink-0"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-gray-300 text-sm">{achievement}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div>
+                    <h5 className="sr-only">Key achievements at {exp.company}</h5>
+                    <ul className="space-y-2 mt-4" role="list" aria-label="Key achievements">
+                      {exp.achievements.map((achievement, idx) => (
+                        <li key={idx} className="flex items-start">
+                          <svg
+                            className="w-4 h-4 text-blue-500 mr-2 mt-1 flex-shrink-0"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-gray-300 text-sm">{achievement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
-            </div>
+            </article>
           ))}
         </div>
 
         {/* Desktop timeline layout */}
-        <div className="relative hidden md:block" ref={timelineRef}>
+        <div className="relative hidden md:block" ref={timelineRef} role="list" aria-label="Work experience timeline">
           {/* Timeline line */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-gradient-to-b from-blue-500 to-purple-500" />
+          <div 
+            className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-gradient-to-b from-blue-500 to-purple-500" 
+            aria-hidden="true"
+          />
           
           {/* Timeline items */}
           <div className="space-y-12">
             {experiences.map((exp, index) => (
-              <div
+              <article
                 key={index}
                 className={`timeline-item relative flex items-center ${
                   index % 2 === 0 ? 'justify-start' : 'justify-end'
-                } opacity-0`}
+                } opacity-0 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:ring-offset-black`}
+                role="listitem"
+                aria-labelledby={`job-title-desktop-${index}`}
               >
                 <div className={`w-5/12 ${index % 2 === 0 ? 'pr-8' : 'pl-8'}`}>
                   <div className="bg-gray-900 rounded-lg p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-white">{exp.title}</h3>
-                      <span className="text-sm text-blue-400">{exp.period}</span>
+                      <h3 id={`job-title-desktop-${index}`} className="text-xl font-bold text-white">{exp.title}</h3>
+                      <time className="text-sm text-blue-400" aria-label={`Employment period: ${exp.period}`}>{exp.period}</time>
                     </div>
                     <h4 className="text-lg text-gray-300 mb-2">{exp.company}</h4>
                     <p className="text-gray-400 mb-4">{exp.location}</p>
@@ -133,30 +164,37 @@ const Experience = () => {
                       <p className="text-gray-400 mb-4">{exp.description}</p>
                     )}
                     {exp.achievements.length > 0 && (
-                      <ul className="space-y-2">
-                        {exp.achievements.map((achievement, idx) => (
-                          <li key={idx} className="flex items-start">
-                            <svg
-                              className="w-5 h-5 text-blue-500 mr-2 mt-1"
-                              fill="none"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="text-gray-300">{achievement}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div>
+                        <h5 className="sr-only">Key achievements at {exp.company}</h5>
+                        <ul className="space-y-2" role="list" aria-label="Key achievements">
+                          {exp.achievements.map((achievement, idx) => (
+                            <li key={idx} className="flex items-start">
+                              <svg
+                                className="w-5 h-5 text-blue-500 mr-2 mt-1"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                aria-hidden="true"
+                              >
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-gray-300">{achievement}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </div>
                 {/* Timeline dot */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full" />
-              </div>
+                <div 
+                  className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full" 
+                  aria-hidden="true"
+                />
+              </article>
             ))}
           </div>
         </div>
