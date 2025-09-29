@@ -1,0 +1,45 @@
+# Azure-specific requirements for RAG Conversational AI Assistant
+# Additional dependencies for Azure cloud deployment
+
+# Core Dependencies (from requirements.txt)
+-r requirements.txt
+
+# Azure SDK Dependencies
+azure-identity==1.15.0
+azure-keyvault-secrets==4.7.0
+azure-storage-blob==12.19.0
+azure-storage-file-share==12.15.0
+azure-cosmos==4.5.1
+azure-search-documents==11.4.0
+azure-ai-formrecognizer==3.3.2
+azure-ai-textanalytics==5.3.0
+azure-ai-translation-text==1.0.0
+azure-ai-speech==1.34.0
+azure-ai-vision==0.15.0
+azure-ai-documentintelligence==1.0.0b4
+
+# Azure Functions
+azure-functions==1.18.0
+azure-functions-worker==1.0.0
+
+# Azure Monitoring
+opencensus-ext-azure==1.1.13
+azure-monitor-opentelemetry==1.2.0
+
+# Azure App Service
+azure-mgmt-web==7.0.0
+azure-mgmt-resource==23.0.1
+azure-mgmt-storage==21.0.0
+azure-mgmt-keyvault==10.2.3
+azure-mgmt-redis==14.1.0
+azure-mgmt-postgresql==10.0.0
+azure-mgmt-search==9.0.0
+azure-mgmt-cognitiveservices==13.5.0
+
+# Azure SignalR
+azure-messaging-webpubsub==1.0.0
+
+# Additional Azure utilities
+azure-core==1.29.5
+azure-common==1.1.28
+azure-nspkg==3.0.2

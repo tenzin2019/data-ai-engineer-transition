@@ -1,0 +1,386 @@
+# LangChain Configuration for RAG Conversational AI Assistant
+# This file contains all LangChain-specific configurations
+
+langchain:
+  # Model configurations
+  models:
+    # OpenAI Models
+    openai:
+      gpt-4:
+        model_name: "gpt-4"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+      
+      gpt-4-turbo:
+        model_name: "gpt-4-turbo-preview"
+        temperature: 0.7
+        max_tokens: 2000
+        top_p: 1.0
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+      
+      gpt-3.5-turbo:
+        model_name: "gpt-3.5-turbo"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+    
+    # Azure OpenAI Models
+    azure_openai:
+      gpt-4:
+        deployment_name: "gpt-4"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+      
+      gpt-3.5-turbo:
+        deployment_name: "gpt-35-turbo"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+    
+    # Anthropic Models
+    anthropic:
+      claude-3-sonnet:
+        model: "claude-3-sonnet-20240229"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+      
+      claude-3-haiku:
+        model: "claude-3-haiku-20240307"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+      
+      claude-3-opus:
+        model: "claude-3-opus-20240229"
+        temperature: 0.7
+        max_tokens: 1000
+        top_p: 1.0
+  
+  # Embedding model configurations
+  embeddings:
+    # OpenAI Embeddings
+    openai:
+      text-embedding-ada-002:
+        model: "text-embedding-ada-002"
+        chunk_size: 1000
+      
+      text-embedding-3-small:
+        model: "text-embedding-3-small"
+        chunk_size: 1000
+      
+      text-embedding-3-large:
+        model: "text-embedding-3-large"
+        chunk_size: 1000
+    
+    # Azure OpenAI Embeddings
+    azure_openai:
+      text-embedding-ada-002:
+        deployment: "text-embedding-ada-002"
+        chunk_size: 1000
+      
+      text-embedding-3-small:
+        deployment: "text-embedding-3-small"
+        chunk_size: 1000
+    
+    # HuggingFace Embeddings
+    huggingface:
+      all-MiniLM-L6-v2:
+        model_name: "sentence-transformers/all-MiniLM-L6-v2"
+        model_kwargs:
+          device: "cpu"
+        encode_kwargs:
+          normalize_embeddings: true
+      
+      all-mpnet-base-v2:
+        model_name: "sentence-transformers/all-mpnet-base-v2"
+        model_kwargs:
+          device: "cpu"
+        encode_kwargs:
+          normalize_embeddings: true
+  
+  # Chain configurations
+  chains:
+    # QA Chain settings
+    qa:
+      chain_type: "stuff"
+      return_source_documents: true
+      verbose: true
+      max_tokens_limit: 4000
+    
+    # Conversational QA Chain settings
+    conversational_qa:
+      memory_type: "buffer"
+      return_source_documents: true
+      verbose: true
+      max_tokens_limit: 4000
+    
+    # Summarization Chain settings
+    summarization:
+      chain_type: "map_reduce"
+      verbose: true
+      max_tokens_limit: 4000
+    
+    # Translation Chain settings
+    translation:
+      verbose: true
+      max_tokens_limit: 2000
+    
+    # Map-Reduce Chain settings
+    map_reduce:
+      verbose: true
+      max_tokens_limit: 4000
+      combine_document_variable_name: "text"
+      map_prompt_template: |
+        Write a summary of the following text:
+        {text}
+        Summary:
+      reduce_prompt_template: |
+        Write a concise summary of the following text:
+        {text}
+        Concise summary:
+  
+  # Memory configurations
+  memory:
+    # Buffer Memory settings
+    buffer:
+      return_messages: true
+      memory_key: "chat_history"
+      output_key: "answer"
+    
+    # Summary Memory settings
+    summary:
+      max_token_limit: 2000
+      memory_key: "chat_history"
+      output_key: "answer"
+      return_messages: true
+    
+    # Token Buffer Memory settings
+    token_buffer:
+      max_token_limit: 2000
+      memory_key: "chat_history"
+      output_key: "answer"
+      return_messages: true
+    
+    # Summary Buffer Memory settings
+    summary_buffer:
+      max_token_limit: 2000
+      memory_key: "chat_history"
+      output_key: "answer"
+      return_messages: true
+    
+    # Vector Store Memory settings
+    vector_store:
+      memory_key: "chat_history"
+      output_key: "answer"
+      return_messages: true
+      search_kwargs:
+        k: 5
+  
+  # Vector Store configurations
+  vector_stores:
+    # ChromaDB settings
+    chroma:
+      persist_directory: "./chroma_db"
+      collection_name: "rag_documents"
+      distance_metric: "cosine"
+      search_kwargs:
+        k: 4
+    
+    # FAISS settings
+    faiss:
+      index_name: "rag_index"
+      distance_strategy: "COSINE"
+      search_kwargs:
+        k: 4
+    
+    # Pinecone settings
+    pinecone:
+      index_name: "rag-assistant"
+      namespace: "documents"
+      search_type: "similarity"
+      search_kwargs:
+        k: 4
+        include_metadata: true
+    
+    # Weaviate settings
+    weaviate:
+      index_name: "RAGDocuments"
+      search_type: "similarity"
+      search_kwargs:
+        k: 4
+        score_threshold: 0.7
+    
+    # Azure Search settings
+    azure_search:
+      index_name: "rag-documents"
+      search_type: "similarity"
+      search_kwargs:
+        k: 4
+        score_threshold: 0.7
+  
+  # Document processing settings
+  document_processing:
+    # Text splitter settings
+    text_splitter:
+      chunk_size: 1000
+      chunk_overlap: 200
+      length_function: "len"
+      separators: ["\n\n", "\n", " ", ""]
+    
+    # Document loaders settings
+    loaders:
+      pdf:
+        extract_images: false
+        extract_metadata: true
+      
+      docx:
+        extract_metadata: true
+      
+      txt:
+        encoding: "utf-8"
+        autodetect_encoding: true
+      
+      web:
+        max_depth: 2
+        delay: 1
+        timeout: 10
+  
+  # Agent configurations
+  agents:
+    # Zero-shot ReAct agent
+    zero_shot_react:
+      agent_type: "ZERO_SHOT_REACT_DESCRIPTION"
+      verbose: true
+      handle_parsing_errors: true
+      max_iterations: 5
+    
+    # Conversational ReAct agent
+    conversational_react:
+      agent_type: "CONVERSATIONAL_REACT_DESCRIPTION"
+      verbose: true
+      handle_parsing_errors: true
+      max_iterations: 5
+    
+    # Self-ask with search agent
+    self_ask_with_search:
+      agent_type: "SELF_ASK_WITH_SEARCH"
+      verbose: true
+      handle_parsing_errors: true
+      max_iterations: 5
+  
+  # Tool configurations
+  tools:
+    # Document search tool
+    document_search:
+      name: "document_search"
+      description: "Search for documents in the knowledge base"
+      max_results: 5
+    
+    # Calculator tool
+    calculator:
+      name: "calculator"
+      description: "Perform mathematical calculations"
+    
+    # Web search tool
+    web_search:
+      name: "web_search"
+      description: "Search the web for current information"
+      max_results: 5
+      timeout: 10
+    
+    # API tool
+    api_tool:
+      name: "api_tool"
+      description: "Make API calls to external services"
+      timeout: 30
+  
+  # Prompt templates
+  prompts:
+    # QA prompt template
+    qa_template: |
+      Use the following pieces of context to answer the question at the end. 
+      If you don't know the answer, just say that you don't know, don't try to make up an answer.
+      
+      Context:
+      {context}
+      
+      Question: {question}
+      Answer:
+    
+    # Conversational QA prompt template
+    conversational_qa_template: |
+      Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+      
+      Chat History:
+      {chat_history}
+      
+      Follow Up Input: {question}
+      Standalone question:
+    
+    # Summarization prompt template
+    summarization_template: |
+      Write a summary of the following text:
+      
+      {text}
+      
+      Summary:
+    
+    # Translation prompt template
+    translation_template: |
+      Translate the following text to {target_language}. 
+      Maintain the original meaning and tone.
+      
+      Text: {text}
+      Translation:
+  
+  # Performance settings
+  performance:
+    # Caching settings
+    caching:
+      enabled: true
+      ttl: 3600  # seconds
+      max_size: 1000
+    
+    # Rate limiting settings
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst_limit: 10
+    
+    # Timeout settings
+    timeouts:
+      model_call: 30  # seconds
+      embedding_call: 10  # seconds
+      vector_search: 5  # seconds
+      chain_execution: 60  # seconds
+  
+  # Monitoring settings
+  monitoring:
+    # Metrics collection
+    metrics:
+      enabled: true
+      collection_interval: 60  # seconds
+    
+    # Logging settings
+    logging:
+      level: "INFO"
+      format: "json"
+      include_metadata: true
+    
+    # Tracing settings
+    tracing:
+      enabled: true
+      sampling_rate: 0.1
+      export_interval: 30  # seconds
