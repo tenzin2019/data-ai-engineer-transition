@@ -5,7 +5,7 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/data-ai-engineer-transition/',
+  base: process.env.NODE_ENV === 'production' ? '/data-ai-engineer-transition/' : '/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),

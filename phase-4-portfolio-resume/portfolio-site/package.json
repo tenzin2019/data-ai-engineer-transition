@@ -22,34 +22,37 @@
     "start": "npm run dev"
   },
   "dependencies": {
+    "@types/react-google-recaptcha": "^2.1.9",
     "dompurify": "^3.0.9",
+    "gtag": "^1.0.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-google-recaptcha": "^3.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
-    "gh-pages": "^6.1.1",
-    "postcss": "^8.5.1",
-    "tailwindcss": "^3.4.17",
-    "vite": "^6.1.6",
     "eslint": "^9.15.0",
-    "@eslint/js": "^9.15.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0",
+    "gh-pages": "^6.1.1",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.5.1",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
-    "@testing-library/react": "^16.1.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "jsdom": "^25.0.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.1.6",
     "vite-bundle-analyzer": "^0.7.0",
-    "typescript": "^5.7.2"
+    "vitest": "^3.2.4"
   }
 }

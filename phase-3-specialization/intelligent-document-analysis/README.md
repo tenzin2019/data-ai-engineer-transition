@@ -1,361 +1,177 @@
 # Intelligent Document Analysis System
 
-## 🎯 Project Overview
+A comprehensive AI-powered document analysis platform deployed on Azure App Service, designed to extract insights from various document types including PDFs, Word documents, Excel files, and text files.
 
-The Intelligent Document Analysis System is a comprehensive GenAI-powered platform that extracts insights, summarizes content, and generates actionable recommendations from complex business documents. This system leverages Azure OpenAI, Document Intelligence, and advanced NLP techniques to provide intelligent document understanding and analysis.
+## 🚀 Live Application
 
-## ✨ Key Features
+**URL**: https://intelligent-document-analysis.azurewebsites.net
 
-- **Multi-format Document Processing**: Support for PDF, Word, Excel, and other common document formats
-- **Intelligent Information Extraction**: AI-powered extraction of key information, entities, and relationships
-- **Automated Summarization**: Generate concise summaries and insights from complex documents
-- **Custom Entity Recognition**: Identify and extract domain-specific entities and concepts
-- **Workflow Integration**: Seamless integration with existing business workflows and systems
-- **Interactive Web Interface**: User-friendly Streamlit-based interface for document upload and analysis
-- **Azure Cloud Ready**: Optimized for Azure App Service deployment with full cloud integration
+## ✨ Features
+
+- **Multi-format Support**: PDF, DOCX, XLSX, TXT files up to 200MB
+- **AI-Powered Analysis**: 
+  - Text extraction and processing
+  - Sentiment analysis
+  - Key phrase extraction
+  - Document summarization
+  - Entity recognition
+  - Confidence scoring
+- **Persistent Storage**: SQLite database for analysis results
+- **Real-time Processing**: Streamlit-based interactive interface
+- **Analytics Dashboard**: Comprehensive insights and metrics
+- **Data Management**: Clear analysis data functionality
 
 ## 🏗️ Architecture
 
+### Technology Stack
+- **Backend**: Python 3.11, Streamlit
+- **AI/ML**: OpenAI GPT-4, NLTK, spaCy
+- **Document Processing**: PyPDF2, python-docx, openpyxl
+- **Database**: SQLite (with PostgreSQL support)
+- **Deployment**: Azure App Service, Docker, Azure Container Registry
+- **Infrastructure**: Azure CLI, Azure Resource Manager
+
+### Project Structure
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Streamlit UI  │    │   FastAPI       │    │   PostgreSQL    │
-│   (Frontend)    │◄──►│   (Backend)     │◄──►│   (Database)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   Azure AI      │
-                       │   Services      │
-                       └─────────────────┘
+intelligent-document-analysis/
+├── src/
+│   ├── web/                 # Streamlit application
+│   ├── core/                # Core processing modules
+│   ├── services/            # Database and business logic
+│   ├── utils/               # Utility functions
+│   ├── models/              # Database models
+│   └── api/                 # API endpoints
+├── scripts/                 # Deployment and utility scripts
+├── tests/                   # Test suite
+├── docs/                    # Documentation
+├── Dockerfile.azure         # Azure-optimized Docker configuration
+├── requirements-azure.txt   # Production dependencies
+└── .azure/                  # Azure App Service configuration
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+- Azure CLI installed and configured
+- Docker installed
+- Python 3.11+ (for local development)
 
-- Python 3.11+
-- Docker and Docker Compose (optional)
-- Azure OpenAI API access
-- Azure Document Intelligence API access
-- PostgreSQL database (or use Docker)
-
-### 1. Clone and Setup
-
+### Local Development
 ```bash
-# Navigate to the project directory
+# Clone the repository
+git clone <repository-url>
 cd intelligent-document-analysis
 
-# Make startup script executable
-chmod +x scripts/start.sh
+# Install dependencies
+pip install -r requirements-azure.txt
 
-# Run the startup script
-./scripts/start.sh
+# Run the application
+streamlit run src/web/app.py
 ```
 
-### 2. Configure Environment
-
+### Azure Deployment
 ```bash
-# Copy environment template
-cp env.example .env
-
-# Edit .env file with your Azure credentials
-nano .env
-```
-
-Required environment variables:
-```env
-# Azure OpenAI Configuration
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-azure-openai-api-key
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
-
-# Azure Document Intelligence Configuration
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
-AZURE_DOCUMENT_INTELLIGENCE_API_KEY=your-document-intelligence-api-key
-
-# Database Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/document_analysis
-```
-
-### 3. Start the Application
-
-#### Option A: Direct Python Execution
-```bash
-# Activate virtual environment
-source venv/bin/activate
-
-# Start Streamlit app
-python -m streamlit run src/web/app.py
-```
-
-#### Option B: Docker Compose
-```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f app
-```
-
-### 4. Access the Application
-
-- **Streamlit Interface**: http://localhost:8501
-- **API Documentation**: http://localhost:8000/docs (if FastAPI is running)
-
-## 📁 Project Structure
-
-```
-intelligent-document-analysis/
-├── src/
-│   ├── api/                    # FastAPI backend (future)
-│   ├── core/                   # Core business logic
-│   │   ├── document_processor.py
-│   │   └── ai_analyzer.py
-│   ├── models/                 # Database models
-│   │   ├── base.py
-│   │   ├── document.py
-│   │   └── user.py
-│   ├── services/               # Business services
-│   │   └── document_service.py
-│   ├── utils/                  # Utility functions
-│   │   ├── file_utils.py
-│   │   ├── text_utils.py
-│   │   ├── ai_utils.py
-│   │   └── model_selector.py
-│   └── web/                    # Streamlit web interface
-│       ├── app.py
-│       ├── health.py
-│       └── model_comparison.py
-├── tests/                      # Test files
-├── docs/                       # Documentation
-├── data/                       # Sample data and test documents
-│   └── sample_documents/
-├── config/                     # Configuration files
-│   └── settings.py
-├── scripts/                    # Utility scripts
-│   ├── start.sh
-│   ├── deploy-azure.sh
-│   └── optimize-for-azure.sh
-├── requirements.txt            # Python dependencies
-├── requirements-azure.txt      # Azure-optimized dependencies
-├── docker-compose.yml          # Docker compose configuration
-├── docker-compose.azure.yml    # Azure-optimized Docker compose
-├── Dockerfile                  # Docker image definition
-├── Dockerfile.azure           # Azure-optimized Docker image
-└── README.md                  # This file
-```
-
-## 🔧 Core Components
-
-### 1. Document Processor (`src/core/document_processor.py`)
-
-Handles multi-format document processing:
-
-**Supported Formats:**
-- PDF (using PyPDF2 and pdfplumber)
-- DOCX (using python-docx)
-- XLSX (using openpyxl)
-- TXT (plain text)
-
-**Key Features:**
-- Text extraction with metadata
-- Page count detection
-- Document statistics calculation
-- Image extraction from PDFs
-- Error handling and fallback mechanisms
-
-### 2. AI Analyzer (`src/core/ai_analyzer.py`)
-
-Performs AI-powered document analysis using Azure OpenAI:
-
-**Capabilities:**
-- Document summarization
-- Key phrase extraction
-- Entity recognition
-- Sentiment analysis
-- Topic identification
-- Insight generation
-- Recommendation creation
-
-### 3. Streamlit Web Interface (`src/web/app.py`)
-
-User-friendly web interface with the following features:
-
-**Main Tabs:**
-- **Upload & Analyze**: Document upload and processing
-- **Analysis Results**: View detailed analysis results
-- **Analytics Dashboard**: System-wide analytics and insights
-- **Settings**: Configuration and system information
-
-## 🚀 Azure Deployment
-
-### Prerequisites for Azure Deployment
-
-1. **Azure CLI** installed and configured
-2. **Docker Desktop** installed and running
-3. **Azure subscription** with sufficient quota
-4. **Azure resources** created (see deployment guide)
-
-### Quick Azure Deployment
-
-```bash
-# Run the Azure deployment script
+# Deploy to Azure
 ./scripts/deploy-azure.sh
 
-# Or use Docker Compose for Azure
-docker-compose -f docker-compose.azure.yml up -d
+# Verify deployment
+./scripts/verify-deployment.sh
 ```
 
-### Azure Resources Required
+## 📋 Available Scripts
 
-- App Service Plan (Linux)
-- Container Registry
-- Database for PostgreSQL
-- Cache for Redis
-- Storage Account
-- Application Insights
-- Azure OpenAI resource
+- `deploy-azure.sh` - Deploy application to Azure App Service
+- `verify-deployment.sh` - Verify deployment status and health
+- `housekeeping.sh` - Clean up unused files and optimize project
+- `health_check.py` - Health check utility
 
-### Detailed Deployment Guide
+## 🔧 Configuration
 
-See [AZURE_DEPLOYMENT_GUIDE.md](docs/AZURE_DEPLOYMENT_GUIDE.md) for comprehensive deployment instructions.
+### Environment Variables
+- `DATABASE_URL` - Database connection string (default: SQLite)
+- `DB_DISABLED` - Disable database operations (default: false)
+- `OPENAI_API_KEY` - OpenAI API key for AI analysis
+- `STREAMLIT_SERVER_MAX_UPLOAD_SIZE` - Maximum file upload size (default: 200MB)
+
+### Azure App Service Settings
+- Port: 8000
+- Platform: Linux/AMD64
+- Container: Docker
+- Storage: Enabled
 
 ## 🧪 Testing
 
-### Running Tests
-
 ```bash
-# Install test dependencies
-pip install -r requirements-test.txt
+# Run tests
+pytest tests/
 
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src
-
-# Run Azure-specific tests
-pytest -m azure
-
-# Run specific test file
+# Run specific test categories
 pytest tests/test_document_processor.py
+pytest tests/test_azure_integration.py
 ```
 
-### Test Structure
+## 📊 Monitoring
 
-```
-tests/
-├── test_document_processor.py
-├── test_azure_openai.py
-├── test_azure_storage.py
-├── test_azure_integration.py
-└── conftest.py
-```
+- **Health Endpoint**: `/health`
+- **Application Logs**: Available through Azure Portal
+- **Metrics**: Azure App Service metrics and insights
 
-## 📊 Performance Metrics
+## 🔒 Security
 
-- **Document Processing**: <5 seconds for typical documents
-- **AI Analysis**: <30 seconds for comprehensive analysis
-- **File Size Limit**: 50MB per document
-- **Supported Formats**: PDF, DOCX, XLSX, TXT
-- **Concurrent Users**: Designed for 100+ concurrent users
+- Non-root user execution in Docker container
+- Input validation and sanitization
+- File type validation
+- Secure environment variable handling
+- CORS and XSRF protection configured
 
-## 🔐 Security Features
+## 🚀 Performance
 
-- File type and size validation
-- Input sanitization and validation
-- Secure API key management
-- Environment-based configuration
-- Comprehensive error handling
-- Azure security best practices
+- Optimized Docker layers for faster builds
+- Efficient document processing pipeline
+- Caching for NLTK data
+- Streamlit optimizations for Azure App Service
 
-## 📈 Business Value
+## 📈 Scalability
 
-### Immediate Benefits
-- **80% Reduction** in document review time
-- **90% Accuracy** in information extraction
-- **Automated Insights** generation
-- **Scalable Processing** for multiple document types
+- Horizontal scaling through Azure App Service
+- Stateless application design
+- Database-agnostic architecture
+- Container-based deployment
 
-### Use Cases
-- **Legal Document Review**: Contract analysis and compliance checking
-- **Financial Report Analysis**: Quarterly reports and financial statements
-- **Technical Documentation**: Requirements analysis and specification review
-- **Business Intelligence**: Market research and competitive analysis
+## 🛠️ Troubleshooting
 
-## 🛠️ Technology Stack
+### Common Issues
+1. **File Upload Errors**: Check file size limits and format support
+2. **Analysis Failures**: Verify OpenAI API key configuration
+3. **Database Issues**: Check SQLite file permissions
+4. **Deployment Issues**: Verify Azure credentials and resource availability
 
-### Backend Technologies
-- **Python 3.11+**: Core programming language
-- **FastAPI**: Modern, fast web framework for APIs
-- **SQLAlchemy**: SQL toolkit and ORM
-- **Pydantic**: Data validation using Python type annotations
+### Logs
+- Application logs available through Azure Portal
+- Container logs accessible via Azure CLI
+- Health check endpoint for status monitoring
 
-### AI/ML Technologies
-- **Azure OpenAI**: GPT-4 for text generation and analysis
-- **Azure Document Intelligence**: Document understanding service
-- **spaCy**: Advanced NLP library
-- **Transformers**: Hugging Face transformers for custom models
-- **scikit-learn**: Machine learning utilities
+## 📝 License
 
-### Frontend Technologies
-- **Streamlit**: Rapid web app development
-- **Plotly**: Interactive visualizations
-- **Pandas**: Data manipulation and analysis
+This project is part of the Data AI Engineer Transition portfolio.
 
-### Database & Storage
-- **PostgreSQL**: Primary database
-- **Redis**: Caching and session storage
-- **Azure Blob Storage**: Document file storage
+## 🤝 Contributing
 
-### DevOps & Deployment
-- **Docker**: Containerization
-- **Docker Compose**: Multi-container orchestration
-- **Azure App Service**: Cloud deployment
-- **Azure Container Registry**: Container image storage
-
-## 🔄 Development Status
-
-### ✅ Completed Features
-- [x] Multi-format document processing
-- [x] Azure OpenAI integration
-- [x] Advanced AI analysis capabilities
-- [x] Streamlit web interface
-- [x] Database models and services
-- [x] Azure deployment configuration
-- [x] Comprehensive testing suite
-- [x] Security implementation
-- [x] Performance optimization
-
-### 🚀 Ready for Production
-- [x] Azure App Service deployment
-- [x] Container orchestration
-- [x] Health monitoring
-- [x] Error handling
-- [x] Logging and metrics
-- [x] Security best practices
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📞 Support
 
-For technical support or questions:
-- Check the [troubleshooting guide](docs/AZURE_DEPLOYMENT_GUIDE.md#troubleshooting)
-- Review the [deployment checklist](AZURE_DEPLOYMENT_CHECKLIST.md)
-- Check the logs for error messages
-- Create an issue in the project repository
-
-## 📄 License
-
-This project is part of the Data AI Engineer Transition portfolio and is intended for educational and demonstration purposes.
-
-## 🎉 Acknowledgments
-
-- Azure OpenAI for providing powerful AI capabilities
-- Streamlit for the excellent web framework
-- The open-source community for various libraries and tools
-- Contributors and testers who helped improve the system
+For issues and questions:
+- Check the troubleshooting section
+- Review Azure App Service logs
+- Contact the development team
 
 ---
 
-**Ready for Azure deployment!** 🚀
-
-For detailed deployment instructions, see [AZURE_DEPLOYMENT_GUIDE.md](docs/AZURE_DEPLOYMENT_GUIDE.md)
+**Status**: ✅ Production Ready  
+**Last Updated**: December 2024  
+**Version**: 1.0.0
