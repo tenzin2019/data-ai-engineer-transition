@@ -42,7 +42,7 @@ class LLMProvider:
         self.error_count += 1
         if self.error_count >= self.max_errors:
             self.is_available = False
-            print(f"⚠️ Provider {self.name} marked as unavailable due to errors")
+            print(f"Warning: Provider {self.name} marked as unavailable due to errors")
     
     def mark_success(self):
         """Mark successful usage"""
@@ -80,7 +80,7 @@ class OpenAIProvider(LLMProvider):
             return response.choices[0].message.content
             
         except Exception as e:
-            print(f"❌ OpenAI error: {e}")
+            print(f"OpenAI error: {e}")
             self.mark_error()
             raise
 
@@ -114,7 +114,7 @@ class AnthropicProvider(LLMProvider):
             return response.content[0].text
             
         except Exception as e:
-            print(f"❌ Anthropic error: {e}")
+            print(f"Anthropic error: {e}")
             self.mark_error()
             raise
 
@@ -129,7 +129,7 @@ class LLMOrchestrator:
         # Initialize providers
         self._initialize_providers()
         
-        print("✅ LLM Orchestrator initialized")
+        print("LLM Orchestrator initialized")
     
     def _initialize_providers(self):
         """Initialize available LLM providers"""
@@ -139,20 +139,20 @@ class LLMOrchestrator:
             if openai_key:
                 openai_provider = OpenAIProvider(openai_key)
                 self.providers.append(openai_provider)
-                print(f"✅ OpenAI provider initialized: {openai_provider.model}")
+                print(f"OpenAI provider initialized: {openai_provider.model}")
             
             # Anthropic provider
             anthropic_key = os.getenv("ANTHROPIC_API_KEY")
             if anthropic_key:
                 anthropic_provider = AnthropicProvider(anthropic_key)
                 self.providers.append(anthropic_provider)
-                print(f"✅ Anthropic provider initialized: {anthropic_provider.model}")
+                print(f"Anthropic provider initialized: {anthropic_provider.model}")
             
             if not self.providers:
-                print("⚠️ No LLM providers configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY environment variables.")
+                print("Warning: No LLM providers configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY environment variables.")
                 
         except Exception as e:
-            print(f"❌ Error initializing providers: {e}")
+            print(f"Error initializing providers: {e}")
     
     async def generate_response(self, prompt: str, max_tokens: int = 500, 
                               temperature: float = 0.7, conversation_id: Optional[str] = None,
@@ -186,12 +186,12 @@ class LLMOrchestrator:
             
             # Log performance
             response_time = time.time() - start_time
-            print(f"✅ Generated response using {provider.name} in {response_time:.2f}s")
+            print(f"Generated response using {provider.name} in {response_time:.2f}s")
             
             return response
             
         except Exception as e:
-            print(f"❌ Error generating response: {e}")
+            print(f"Error generating response: {e}")
             # Try fallback providers
             return await self._try_fallback_generation(prompt, max_tokens, temperature, **kwargs)
     
@@ -220,7 +220,7 @@ class LLMOrchestrator:
             return best_provider
             
         except Exception as e:
-            print(f"❌ Error selecting provider: {e}")
+            print(f"Error selecting provider: {e}")
             return available_providers[0] if available_providers else None
     
     async def _try_fallback_generation(self, prompt: str, max_tokens: int, 
@@ -244,11 +244,11 @@ class LLMOrchestrator:
                     )
                     
                     provider.mark_success()
-                    print(f"✅ Fallback successful using {provider.name}")
+                    print(f"Fallback successful using {provider.name}")
                     return response
                     
                 except Exception as e:
-                    print(f"❌ Fallback provider {provider.name} failed: {e}")
+                    print(f"Fallback provider {provider.name} failed: {e}")
                     provider.mark_error()
                     continue
             
@@ -256,7 +256,7 @@ class LLMOrchestrator:
             return "I apologize, but I'm currently experiencing technical difficulties. Please try again later."
             
         except Exception as e:
-            print(f"❌ All fallback attempts failed: {e}")
+            print(f"All fallback attempts failed: {e}")
             return "I apologize, but I'm currently unable to process your request. Please try again later."
     
     async def _enhance_prompt_with_context(self, prompt: str, conversation_id: Optional[str] = None) -> str:
@@ -283,7 +283,7 @@ class LLMOrchestrator:
             return enhanced_prompt
             
         except Exception as e:
-            print(f"❌ Error enhancing prompt: {e}")
+            print(f"Error enhancing prompt: {e}")
             return prompt
     
     async def _cache_conversation(self, conversation_id: str, user_input: str, assistant_response: str):
@@ -305,7 +305,7 @@ class LLMOrchestrator:
                 self.conversation_cache[conversation_id] = self.conversation_cache[conversation_id][-10:]
                 
         except Exception as e:
-            print(f"❌ Error caching conversation: {e}")
+            print(f"Error caching conversation: {e}")
     
     async def get_provider_status(self) -> Dict[str, Any]:
         """Get status of all providers"""
@@ -329,7 +329,7 @@ class LLMOrchestrator:
             return status
             
         except Exception as e:
-            print(f"❌ Error getting provider status: {e}")
+            print(f"Error getting provider status: {e}")
             return {'error': str(e)}
     
     async def reset_provider_errors(self, provider_name: Optional[str] = None):
@@ -339,10 +339,10 @@ class LLMOrchestrator:
                 if not provider_name or provider.name == provider_name:
                     provider.error_count = 0
                     provider.is_available = True
-                    print(f"✅ Reset errors for provider: {provider.name}")
+                    print(f"Reset errors for provider: {provider.name}")
                     
         except Exception as e:
-            print(f"❌ Error resetting provider errors: {e}")
+            print(f"Error resetting provider errors: {e}")
     
     async def clear_conversation_cache(self, conversation_id: Optional[str] = None):
         """Clear conversation cache"""
@@ -350,10 +350,10 @@ class LLMOrchestrator:
             if conversation_id:
                 if conversation_id in self.conversation_cache:
                     del self.conversation_cache[conversation_id]
-                    print(f"✅ Cleared cache for conversation: {conversation_id}")
+                    print(f"Cleared cache for conversation: {conversation_id}")
             else:
                 self.conversation_cache.clear()
-                print("✅ Cleared all conversation caches")
+                print("Cleared all conversation caches")
                 
         except Exception as e:
-            print(f"❌ Error clearing conversation cache: {e}")
+            print(f"Error clearing conversation cache: {e}")

@@ -41,14 +41,14 @@ class VectorStore:
         # Get or create collection
         self.collection = self._get_or_create_collection()
         
-        print(f"✅ Vector store initialized with collection: {self.collection_name}")
+        print(f"Vector store initialized with collection: {self.collection_name}")
     
     def _get_or_create_collection(self):
         """Get existing collection or create new one"""
         try:
             # Try to get existing collection
             collection = self.client.get_collection(self.collection_name)
-            print(f"📚 Using existing collection: {self.collection_name}")
+            print(f"Using existing collection: {self.collection_name}")
             return collection
         except Exception:
             # Create new collection
@@ -92,11 +92,11 @@ class VectorStore:
             
             # Return document ID (from first chunk)
             document_id = chunks[0].metadata.get('document_id', str(uuid.uuid4()))
-            print(f"✅ Added {len(chunks)} chunks to vector store")
+            print(f"Added {len(chunks)} chunks to vector store")
             return document_id
             
         except Exception as e:
-            print(f"❌ Error adding documents to vector store: {e}")
+            print(f"Error adding documents to vector store: {e}")
             raise
     
     async def search_similar(self, query: str, n_results: int = 5, filter_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -125,7 +125,7 @@ class VectorStore:
             return formatted_results
             
         except Exception as e:
-            print(f"❌ Error searching vector store: {e}")
+            print(f"Error searching vector store: {e}")
             raise
     
     async def get_document_by_id(self, document_id: str) -> Optional[Dict[str, Any]]:
@@ -145,7 +145,7 @@ class VectorStore:
             }
             
         except Exception as e:
-            print(f"❌ Error getting document by ID: {e}")
+            print(f"Error getting document by ID: {e}")
             return None
     
     async def delete_document(self, document_id: str) -> bool:
@@ -162,11 +162,11 @@ class VectorStore:
             # Delete all chunks
             self.collection.delete(ids=results['ids'])
             
-            print(f"✅ Deleted document {document_id} with {len(results['ids'])} chunks")
+            print(f"Deleted document {document_id} with {len(results['ids'])} chunks")
             return True
             
         except Exception as e:
-            print(f"❌ Error deleting document: {e}")
+            print(f"Error deleting document: {e}")
             return False
     
     async def list_documents(self) -> List[Dict[str, Any]]:
@@ -198,7 +198,7 @@ class VectorStore:
             return list(documents.values())
             
         except Exception as e:
-            print(f"❌ Error listing documents: {e}")
+            print(f"Error listing documents: {e}")
             return []
     
     async def get_collection_stats(self) -> Dict[str, Any]:
@@ -223,7 +223,7 @@ class VectorStore:
             }
             
         except Exception as e:
-            print(f"❌ Error getting collection stats: {e}")
+            print(f"Error getting collection stats: {e}")
             return {}
     
     async def update_document_metadata(self, document_id: str, new_metadata: Dict[str, Any]) -> bool:
@@ -250,11 +250,11 @@ class VectorStore:
                 metadatas=updated_metadatas
             )
             
-            print(f"✅ Updated metadata for document {document_id}")
+            print(f"Updated metadata for document {document_id}")
             return True
             
         except Exception as e:
-            print(f"❌ Error updating document metadata: {e}")
+            print(f"Error updating document metadata: {e}")
             return False
     
     async def search_with_filters(self, query: str, filters: Dict[str, Any], n_results: int = 5) -> List[Dict[str, Any]]:
@@ -282,7 +282,7 @@ class VectorStore:
             return formatted_results
             
         except Exception as e:
-            print(f"❌ Error searching with filters: {e}")
+            print(f"Error searching with filters: {e}")
             raise
     
     def reset_collection(self):
@@ -290,7 +290,7 @@ class VectorStore:
         try:
             self.client.delete_collection(self.collection_name)
             self.collection = self._get_or_create_collection()
-            print(f"🔄 Collection {self.collection_name} has been reset")
+            print(f"Collection {self.collection_name} has been reset")
         except Exception as e:
-            print(f"❌ Error resetting collection: {e}")
+            print(f"Error resetting collection: {e}")
             raise

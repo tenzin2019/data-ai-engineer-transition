@@ -39,7 +39,7 @@ class TextPreprocessor:
             return text.strip()
             
         except Exception as e:
-            print(f"❌ Error preprocessing text: {e}")
+            print(f"Error preprocessing text: {e}")
             return text
     
     def _normalize_unicode(self, text: str) -> str:
@@ -100,7 +100,7 @@ class TextPreprocessor:
             return [word for word, freq in sorted_keywords[:max_keywords]]
             
         except Exception as e:
-            print(f"❌ Error extracting keywords: {e}")
+            print(f"Error extracting keywords: {e}")
             return []
     
     def clean_html(self, text: str) -> str:
@@ -160,7 +160,7 @@ class TextSplitter:
             return chunks
             
         except Exception as e:
-            print(f"❌ Error splitting text: {e}")
+            print(f"Error splitting text: {e}")
             return [text] if text else []
     
     def _find_sentence_boundary(self, text: str, start: int, end: int) -> int:
@@ -205,7 +205,7 @@ class TextSplitter:
             return chunks
             
         except Exception as e:
-            print(f"❌ Error splitting by paragraphs: {e}")
+            print(f"Error splitting by paragraphs: {e}")
             return [text] if text else []
     
     def split_by_sentences(self, text: str) -> List[str]:
@@ -239,7 +239,7 @@ class TextSplitter:
             return chunks
             
         except Exception as e:
-            print(f"❌ Error splitting by sentences: {e}")
+            print(f"Error splitting by sentences: {e}")
             return [text] if text else []
 
 class TextMetrics:

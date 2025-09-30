@@ -2,11 +2,11 @@
 
 A comprehensive Retrieval-Augmented Generation (RAG) system with conversational AI capabilities, designed for enterprise-grade question-answering with advanced features including LLM orchestration, prompt versioning, human-in-the-loop feedback, model observation, and drift detection.
 
-## 🚀 Project Overview
+## Project Overview
 
 The RAG Conversational AI Assistant is an enterprise-grade question-answering platform that combines advanced retrieval techniques with large language models to provide accurate, contextual, and traceable answers. This system incorporates industry best practices and cutting-edge AI technologies for continuous improvement and optimal performance.
 
-## ✨ Key Features
+## Key Features
 
 ### Core RAG Capabilities
 - **Intelligent Document Retrieval**: Multi-format document processing (PDF, DOCX, TXT, HTML)
@@ -28,7 +28,7 @@ The RAG Conversational AI Assistant is an enterprise-grade question-answering pl
 - **Analytics Dashboard**: Comprehensive insights and performance metrics
 - **Multi-Tenant Support**: Isolated environments for different organizations
 
-## 🏗️ Architecture
+## Architecture
 
 ### System Components
 ```
@@ -65,7 +65,7 @@ The RAG Conversational AI Assistant is an enterprise-grade question-answering pl
 └─────────────────┴─────────────────┴─────────────────┴─────────┘
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Backend Technologies
 - **API Framework**: FastAPI with async support
@@ -99,7 +99,7 @@ The RAG Conversational AI Assistant is an enterprise-grade question-answering pl
 - **Storage**: Azure Blob Storage, Azure Files
 - **Cloud Platform**: Microsoft Azure with native service integration
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 rag-conversational-ai-assistant/
@@ -128,40 +128,84 @@ rag-conversational-ai-assistant/
 └── README.md                      # This file
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 14+
-- Redis 6+
-- Vector Database (Pinecone/Weaviate)
+- Docker & Docker Compose (recommended)
+- API keys for LLM services (OpenAI, Anthropic, or Azure OpenAI)
 
-### Local Development
+### Method 1: Automated Setup (Recommended)
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd rag-conversational-ai-assistant
 
-# Set up Python environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# Run automated setup
+chmod +x scripts/setup.sh
+./scripts/setup.sh
 
-# Set up Node.js environment
-npm install
+# Test the setup
+python test_setup.py
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration
+# Edit environment variables
+cp env.example .env
+nano .env  # Add your API keys
 
-# Start services with Docker Compose
+# Start with Docker Compose (easiest)
 docker-compose up -d
 
-# Run the application
+# Access the application
+# Frontend: http://localhost:8501
+# API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+### Method 2: Manual Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd rag-conversational-ai-assistant
+
+# Create Python environment
+python3 -m venv rag-venv
+source rag-venv/bin/activate  # On Windows: rag-venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp env.example .env
+# Edit .env with your API keys and configuration
+
+# Create necessary directories
+mkdir -p uploads chroma_db logs temp
+
+# Test the setup
+python test_setup.py
+
+# Start the backend API
 python src/api/main.py
-npm run dev  # In another terminal
+
+# In another terminal, start the frontend
+source rag-venv/bin/activate
+streamlit run src/frontend/streamlit_app.py
+```
+
+### Method 3: Development with Individual Services
+```bash
+# Start PostgreSQL and Redis
+docker-compose up -d postgres redis
+
+# Set environment variables for local development
+export DATABASE_URL="postgresql://postgres:password@localhost:5432/rag_assistant"
+export REDIS_URL="redis://localhost:6379/0"
+
+# Run the API
+python src/api/main.py
+
+# Run the frontend
+streamlit run src/frontend/streamlit_app.py
 ```
 
 ### Production Deployment
@@ -188,7 +232,7 @@ kubectl apply -f deployments/
 helm install rag-assistant ./helm-chart
 ```
 
-## 📊 Performance Targets
+## Performance Targets
 
 - **Response Time**: <2 seconds for 95% of queries
 - **Throughput**: 1000+ queries per minute
@@ -196,7 +240,7 @@ helm install rag-assistant ./helm-chart
 - **Accuracy**: >95% retrieval accuracy, >90% answer quality
 - **Scalability**: Support 1000+ concurrent users
 
-## 🔒 Security & Compliance
+## Security & Compliance
 
 - **Data Encryption**: End-to-end encryption for data in transit and at rest
 - **Access Control**: Role-based access control (RBAC) with fine-grained permissions
@@ -204,7 +248,7 @@ helm install rag-assistant ./helm-chart
 - **Audit Logging**: Comprehensive audit trails for all operations
 - **Model Security**: Input validation, output filtering, and prompt injection protection
 
-## 📈 Monitoring & Analytics
+## Monitoring & Analytics
 
 - **Real-time Monitoring**: Live performance dashboards
 - **Automated Alerting**: Proactive alerting for issues
@@ -212,7 +256,7 @@ helm install rag-assistant ./helm-chart
 - **User Analytics**: User behavior and satisfaction analysis
 - **Model Drift Detection**: Automated detection of model performance degradation
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -220,11 +264,11 @@ helm install rag-assistant ./helm-chart
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is part of the Data AI Engineer Transition portfolio.
 
-## 📞 Support
+## Support
 
 For issues and questions:
 - Check the documentation in the `docs/` folder
@@ -234,7 +278,7 @@ For issues and questions:
 
 ---
 
-**Status**: 🚧 In Development  
+**Status**: In Development  
 **Last Updated**: December 2024  
 **Version**: 0.1.0  
 **Maintainer**: Data AI Engineer Transition Team

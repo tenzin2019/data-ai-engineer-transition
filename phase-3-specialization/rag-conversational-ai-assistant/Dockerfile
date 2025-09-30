@@ -1,75 +1,45 @@
-# Multi-stage Dockerfile for RAG Conversational AI Assistant
+# RAG Conversational AI Assistant - Backend Dockerfile
+FROM python:3.11-slim
 
-# Stage 1: Base Python environment
-FROM python:3.11-slim as base
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    git \
-    libpq-dev \
-    libffi-dev \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Development environment
-FROM base as development
-
-# Install development dependencies
-RUN pip install --no-cache-dir \
-    pytest \
-    pytest-asyncio \
-    pytest-cov \
-    black \
-    isort \
-    flake8 \
-    mypy \
-    pre-commit
-
-# Copy source code
-COPY . .
-
-# Create uploads directory
-RUN mkdir -p uploads
-
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Run the application
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-# Stage 3: Production environment
-FROM base as production
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        libmagic1 \
+        libmagic-dev \
+        poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy source code
-COPY . .
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Create necessary directories
-RUN mkdir -p uploads logs && \
-    chown -R appuser:appuser /app
+RUN mkdir -p uploads chroma_db logs temp \
+    && chown -R appuser:appuser /app
+
+# Copy application code
+COPY . .
+
+# Set proper permissions
+RUN chown -R appuser:appuser /app \
+    && chmod -R 755 /app
 
 # Switch to non-root user
 USER appuser
@@ -78,8 +48,8 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application with gunicorn
-CMD ["gunicorn", "src.api.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+# Run the application
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

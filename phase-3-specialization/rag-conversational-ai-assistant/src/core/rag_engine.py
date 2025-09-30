@@ -68,7 +68,7 @@ class RAGEngine:
         self.default_n_results = 5
         self.context_window = 3
         
-        print("✅ RAG Engine initialized")
+        print("RAG Engine initialized")
     
     async def process_query(self, query: str, conversation_id: Optional[str] = None, 
                           max_tokens: int = 500, temperature: float = 0.7) -> Dict[str, Any]:
@@ -120,11 +120,11 @@ class RAGEngine:
                 }
             }
             
-            print(f"✅ Query processed successfully: {conversation_id}")
+            print(f"Query processed successfully: {conversation_id}")
             return result
             
         except Exception as e:
-            print(f"❌ Error processing query: {e}")
+            print(f"Error processing query: {e}")
             raise
     
     async def _preprocess_query(self, query: str) -> str:
@@ -141,7 +141,7 @@ class RAGEngine:
             return processed
             
         except Exception as e:
-            print(f"❌ Error preprocessing query: {e}")
+            print(f"Error preprocessing query: {e}")
             return query  # Return original query as fallback
     
     async def _retrieve_documents(self, query: str, n_results: Optional[int] = None) -> List[Dict[str, Any]]:
@@ -160,11 +160,11 @@ class RAGEngine:
                 if result.get('distance', 1.0) < 0.9:  # ChromaDB uses cosine distance
                     filtered_results.append(result)
             
-            print(f"📚 Retrieved {len(filtered_results)} relevant documents")
+            print(f"Retrieved {len(filtered_results)} relevant documents")
             return filtered_results
             
         except Exception as e:
-            print(f"❌ Error retrieving documents: {e}")
+            print(f"Error retrieving documents: {e}")
             return []
     
     async def _build_context(self, retrieved_docs: List[Dict[str, Any]], conversation_id: str) -> str:
@@ -210,7 +210,7 @@ class RAGEngine:
             return context
             
         except Exception as e:
-            print(f"❌ Error building context: {e}")
+            print(f"Error building context: {e}")
             return ""
     
     async def _generate_response(self, query: str, context: str, conversation_id: str,
@@ -231,7 +231,7 @@ class RAGEngine:
             return response
             
         except Exception as e:
-            print(f"❌ Error generating response: {e}")
+            print(f"Error generating response: {e}")
             return "I apologize, but I encountered an error while generating a response. Please try again."
     
     def _build_prompt(self, query: str, context: str) -> str:
@@ -266,7 +266,7 @@ Answer:"""
             return sources
             
         except Exception as e:
-            print(f"❌ Error extracting sources: {e}")
+            print(f"Error extracting sources: {e}")
             return []
     
     async def get_conversation_history(self, conversation_id: str) -> List[Dict[str, Any]]:
@@ -281,7 +281,7 @@ Answer:"""
                 return True
             return False
         except Exception as e:
-            print(f"❌ Error clearing conversation: {e}")
+            print(f"Error clearing conversation: {e}")
             return False
     
     async def get_engine_stats(self) -> Dict[str, Any]:
@@ -297,5 +297,5 @@ Answer:"""
             }
             
         except Exception as e:
-            print(f"❌ Error getting engine stats: {e}")
+            print(f"Error getting engine stats: {e}")
             return {'engine_status': 'error'}

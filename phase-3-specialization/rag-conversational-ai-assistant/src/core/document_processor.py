@@ -97,11 +97,11 @@ class DocumentProcessor:
             # Split into chunks
             chunks = await self._create_chunks_async(processed_text, document_id, file_path.name)
             
-            print(f"✅ Processed {file_path.name}: {len(chunks)} chunks created")
+            print(f"Processed {file_path.name}: {len(chunks)} chunks created")
             return chunks
             
         except Exception as e:
-            print(f"❌ Error processing document {file_path}: {e}")
+            print(f"Error processing document {file_path}: {e}")
             raise
     
     def _generate_document_id(self, file_path: Path) -> str:

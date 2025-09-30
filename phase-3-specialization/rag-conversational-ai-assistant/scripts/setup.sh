@@ -1,208 +1,113 @@
 #!/bin/bash
 
-# RAG Conversational AI Assistant - Setup Script
-# This script sets up the development environment
-
+# RAG Conversational AI Assistant - Local Setup Script
 set -e
 
-echo "🚀 Setting up RAG Conversational AI Assistant..."
+echo "🤖 RAG Conversational AI Assistant - Local Setup"
+echo "==============================================="
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+# Check if Python is installed
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}ERROR: Python 3 is not installed.${NC}"
+    echo "Please install Python 3.11 or later from https://python.org"
+    exit 1
+fi
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+# Check Python version
+PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+REQUIRED_VERSION="3.11"
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+    echo -e "${RED}ERROR: Python 3.11 or later is required. Current version: $PYTHON_VERSION${NC}"
+    exit 1
+fi
 
-# Check if Python 3.11+ is installed
-check_python() {
-    print_status "Checking Python version..."
-    if command -v python3 &> /dev/null; then
-        PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-        if [[ $(echo "$PYTHON_VERSION >= 3.11" | bc -l) -eq 1 ]]; then
-            print_status "Python $PYTHON_VERSION found ✓"
-        else
-            print_error "Python 3.11+ is required. Found: $PYTHON_VERSION"
-            exit 1
-        fi
-    else
-        print_error "Python 3 is not installed"
-        exit 1
-    fi
-}
-
-# Check if Node.js 18+ is installed
-check_node() {
-    print_status "Checking Node.js version..."
-    if command -v node &> /dev/null; then
-        NODE_VERSION=$(node -v | cut -d'v' -f2)
-        NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
-        if [[ $NODE_MAJOR -ge 18 ]]; then
-            print_status "Node.js $NODE_VERSION found ✓"
-        else
-            print_error "Node.js 18+ is required. Found: $NODE_VERSION"
-            exit 1
-        fi
-    else
-        print_error "Node.js is not installed"
-        exit 1
-    fi
-}
+echo -e "${GREEN}Python $PYTHON_VERSION found${NC}"
 
 # Check if Docker is installed
-check_docker() {
-    print_status "Checking Docker..."
-    if command -v docker &> /dev/null; then
-        print_status "Docker found ✓"
-    else
-        print_warning "Docker not found. Some features may not work."
-    fi
-}
-# Create virtual environment
-setup_python_env() {
-    print_status "Setting up Python virtual environment..."
-    
-    if [ ! -d "rag-venv" ]; then
-        python3 -m venv rag-venv
-        print_status "Virtual environment created"
-    else
-        print_status "Virtual environment already exists"
-    fi
-    
-    source rag-venv/bin/activate
-    print_status "Virtual environment activated"
-    
-    # Upgrade pip
-    pip install --upgrade pip
-    
-    # Install dependencies
-    print_status "Installing Python dependencies..."
-    pip install -r requirements.txt
-    
-    # Install development dependencies
-    print_status "Installing development dependencies..."
-    pip install -e ".[dev]"
-    
-    print_status "Python environment setup complete ✓"
-}
+if ! command -v docker &> /dev/null; then
+    echo -e "${YELLOW}Warning: Docker is not installed. Some features may not work.${NC}"
+    echo "Install Docker from https://www.docker.com/products/docker-desktop"
+else
+    echo -e "${GREEN}Docker found${NC}"
+fi
 
-# Setup Node.js environment
-setup_node_env() {
-    print_status "Setting up Node.js environment..."
-    
-    if [ ! -d "node_modules" ]; then
-        npm install
-        print_status "Node.js dependencies installed"
-    else
-        print_status "Node.js dependencies already installed"
-    fi
-    
-    print_status "Node.js environment setup complete ✓"
-}
+# Check if Docker Compose is installed
+if ! command -v docker-compose &> /dev/null; then
+    echo -e "${YELLOW}Warning: Docker Compose is not installed. Some features may not work.${NC}"
+    echo "Install Docker Compose from https://docs.docker.com/compose/install/"
+else
+    echo -e "${GREEN}Docker Compose found${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}Setting up the development environment...${NC}"
+
+# Create virtual environment
+echo -e "${YELLOW}Creating Python virtual environment...${NC}"
+python3 -m venv rag-venv
+
+# Activate virtual environment
+echo -e "${YELLOW}Activating virtual environment...${NC}"
+source rag-venv/bin/activate
+
+# Upgrade pip
+echo -e "${YELLOW}Upgrading pip...${NC}"
+pip install --upgrade pip
+
+# Install requirements
+echo -e "${YELLOW}Installing Python dependencies...${NC}"
+pip install -r requirements.txt
 
 # Create necessary directories
-create_directories() {
-    print_status "Creating necessary directories..."
-    
-    mkdir -p uploads
-    mkdir -p logs
-    mkdir -p data
-    mkdir -p chroma_db
-    mkdir -p config/nginx/ssl
-    mkdir -p config/grafana/dashboards
-    mkdir -p config/grafana/datasources
-    
-    print_status "Directories created ✓"
-}
+echo -e "${YELLOW}Creating necessary directories...${NC}"
+mkdir -p uploads
+mkdir -p chroma_db
+mkdir -p logs
+mkdir -p temp
 
-# Setup environment file
-setup_env_file() {
-    print_status "Setting up environment configuration..."
-    
-    if [ ! -f ".env" ]; then
-        if [ -f ".env.example" ]; then
-            cp .env.example .env
-            print_warning "Please update .env file with your actual configuration values"
-        else
-            print_error ".env.example file not found"
-            exit 1
-        fi
-    else
-        print_status ".env file already exists"
-    fi
-}
+# Copy environment file
+echo -e "${YELLOW}Setting up environment variables...${NC}"
+if [ ! -f .env ]; then
+    cp env.example .env
+    echo -e "${GREEN}Created .env file from template${NC}"
+    echo -e "${YELLOW}Please edit .env file with your API keys and configuration${NC}"
+else
+    echo -e "${GREEN}.env file already exists${NC}"
+fi
 
-# Setup pre-commit hooks
-setup_pre_commit() {
-    print_status "Setting up pre-commit hooks..."
-    
-    if command -v pre-commit &> /dev/null; then
-        pre-commit install
-        print_status "Pre-commit hooks installed ✓"
-    else
-        print_warning "Pre-commit not installed. Skipping hook setup."
-    fi
-}
+# Set permissions
+chmod +x scripts/*.sh
 
-# Setup database
-setup_database() {
-    print_status "Setting up database..."
-    
-    # Check if PostgreSQL is running
-    if command -v pg_isready &> /dev/null; then
-        if pg_isready -h localhost -p 5432 &> /dev/null; then
-            print_status "PostgreSQL is running"
-        else
-            print_warning "PostgreSQL is not running. Please start it before running the application."
-        fi
-    else
-        print_warning "PostgreSQL client not found. Please ensure PostgreSQL is installed and running."
-    fi
-}
-
-# Main setup function
-main() {
-    echo "=========================================="
-    echo "RAG Conversational AI Assistant Setup"
-    echo "=========================================="
-    
-    check_python
-    check_node
-    check_docker
-    
-    create_directories
-    setup_env_file
-    setup_python_env
-    setup_node_env
-    setup_pre_commit
-    setup_database
-    
-    echo ""
-    echo "=========================================="
-    echo "✅ Setup complete!"
-    echo "=========================================="
-    echo ""
-    echo "Next steps:"
-    echo "1. Update .env file with your configuration"
-    echo "2. Start the database services: docker-compose up -d postgres redis"
-    echo "3. Run database migrations: python scripts/migrate.py"
-    echo "4. Start the development server: python src/api/main.py"
-    echo "5. Start the frontend: npm run dev"
-    echo ""
-    echo "For more information, see the README.md file."
-}
-
-# Run main function
-main "$@"
+echo ""
+echo -e "${GREEN}Setup completed successfully!${NC}"
+echo ""
+echo -e "${BLUE}Next steps:${NC}"
+echo "1. Edit the .env file with your configuration:"
+echo "   nano .env"
+echo ""
+echo "2. Activate the virtual environment:"
+echo "   source rag-venv/bin/activate"
+echo ""
+echo "3. Start the development server:"
+echo "   python src/api/main.py"
+echo ""
+echo "4. In another terminal, start the frontend:"
+echo "   streamlit run src/frontend/streamlit_app.py"
+echo ""
+echo "5. Or use Docker Compose for full stack:"
+echo "   docker-compose up -d"
+echo ""
+echo -e "${BLUE}Important configuration:${NC}"
+echo "- Set your OpenAI API key: OPENAI_API_KEY"
+echo "- Set your Anthropic API key: ANTHROPIC_API_KEY"
+echo "- Configure Azure OpenAI if using: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY"
+echo ""
+echo -e "${GREEN}Happy coding!${NC}"

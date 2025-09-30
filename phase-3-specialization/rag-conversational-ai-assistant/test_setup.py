@@ -1,213 +1,231 @@
 #!/usr/bin/env python3
 """
-Test script to verify RAG system setup and functionality
+RAG Conversational AI Assistant - Setup Test
+Quick test to verify the system is working correctly
 """
 
 import asyncio
 import os
 import sys
+import tempfile
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.append(str(Path(__file__).parent / "src"))
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-async def test_imports():
-    """Test if all modules can be imported"""
-    print("🧪 Testing imports...")
-    
-    try:
-        from src.core.document_processor import DocumentProcessor
-        print("✅ DocumentProcessor imported successfully")
-        
-        from src.core.vector_store import VectorStore
-        print("✅ VectorStore imported successfully")
-        
-        from src.core.rag_engine import RAGEngine
-        print("✅ RAGEngine imported successfully")
-        
-        from src.orchestration.llm_orchestrator import LLMOrchestrator
-        print("✅ LLMOrchestrator imported successfully")
-        
-        from src.utils.text_utils import TextPreprocessor, TextSplitter
-        print("✅ Text utilities imported successfully")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Import error: {e}")
-        return False
+from core.document_processor import DocumentProcessor
+from core.vector_store import VectorStore
+from core.rag_engine import RAGEngine
+from orchestration.llm_orchestrator import LLMOrchestrator
+from utils.text_utils import TextPreprocessor, TextSplitter
 
-async def test_text_processing():
-    """Test text processing functionality"""
-    print("\n🧪 Testing text processing...")
+
+async def test_setup():
+    """Test the RAG system setup"""
+    print("🤖 RAG Conversational AI Assistant - Setup Test")
+    print("=" * 60)
     
+    # Test 1: Text Utilities
+    print("\n1. Testing Text Utilities...")
     try:
-        from src.utils.text_utils import TextPreprocessor, TextSplitter
-        
-        # Test text preprocessing
         preprocessor = TextPreprocessor()
-        test_text = "  Hello   World!   This   is   a   test.  "
+        splitter = TextSplitter(chunk_size=100, chunk_overlap=20)
+        
+        test_text = "This is a test document. It contains multiple sentences. We will test text processing."
         processed = preprocessor.process(test_text)
-        print(f"✅ Text preprocessing: '{test_text}' -> '{processed}'")
+        chunks = splitter.split_text(processed)
         
-        # Test text splitting
-        splitter = TextSplitter(chunk_size=50, chunk_overlap=10)
-        long_text = "This is a long text that should be split into multiple chunks for processing. " * 5
-        chunks = splitter.split_text(long_text)
-        print(f"✅ Text splitting: {len(chunks)} chunks created")
-        
-        return True
+        print(f"   ✅ Processed text: {len(processed)} characters")
+        print(f"   ✅ Created chunks: {len(chunks)}")
         
     except Exception as e:
-        print(f"❌ Text processing error: {e}")
+        print(f"   ❌ Text utilities failed: {e}")
         return False
-
-async def test_document_processor():
-    """Test document processor initialization"""
-    print("\n🧪 Testing document processor...")
     
+    # Test 2: Document Processor
+    print("\n2. Testing Document Processor...")
     try:
-        from src.core.document_processor import DocumentProcessor
+        processor = DocumentProcessor(chunk_size=200, chunk_overlap=50)
         
-        processor = DocumentProcessor()
-        supported_formats = processor.get_supported_formats()
-        print(f"✅ Document processor initialized with formats: {supported_formats}")
+        # Create a test text file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
+            temp_file.write("This is a test document for the RAG system. " * 10)
+            temp_file_path = temp_file.name
         
-        return True
+        # Process the document
+        chunks = await processor.process_document(temp_file_path)
+        print(f"   ✅ Document processed: {len(chunks)} chunks created")
+        
+        # Cleanup
+        os.unlink(temp_file_path)
+        await processor.cleanup()
         
     except Exception as e:
-        print(f"❌ Document processor error: {e}")
+        print(f"   ❌ Document processor failed: {e}")
         return False
-
-async def test_vector_store():
-    """Test vector store initialization"""
-    print("\n🧪 Testing vector store...")
     
+    # Test 3: Vector Store
+    print("\n3. Testing Vector Store...")
     try:
-        from src.core.vector_store import VectorStore
-        
-        vector_store = VectorStore(persist_directory="./test_chroma_db")
-        stats = await vector_store.get_collection_stats()
-        print(f"✅ Vector store initialized: {stats}")
-        
-        return True
+        # Use temporary directory for testing
+        with tempfile.TemporaryDirectory() as temp_dir:
+            vector_store = VectorStore(persist_directory=temp_dir)
+            
+            # Add some test chunks
+            if chunks:
+                doc_id = await vector_store.add_documents(chunks[:2])  # Add first 2 chunks
+                print(f"   ✅ Documents added to vector store: {doc_id}")
+                
+                # Test search
+                results = await vector_store.search_similar("test document", n_results=1)
+                print(f"   ✅ Search results: {len(results)} documents found")
+                
+                # Test stats
+                stats = await vector_store.get_collection_stats()
+                print(f"   ✅ Collection stats: {stats.get('total_chunks', 0)} chunks")
         
     except Exception as e:
-        print(f"❌ Vector store error: {e}")
+        print(f"   ❌ Vector store failed: {e}")
         return False
-
-async def test_llm_orchestrator():
-    """Test LLM orchestrator initialization"""
-    print("\n🧪 Testing LLM orchestrator...")
     
+    # Test 4: LLM Orchestrator (without actual API calls)
+    print("\n4. Testing LLM Orchestrator...")
     try:
-        from src.orchestration.llm_orchestrator import LLMOrchestrator
-        
         orchestrator = LLMOrchestrator()
         status = await orchestrator.get_provider_status()
-        print(f"✅ LLM orchestrator initialized: {status}")
+        print(f"   ✅ LLM orchestrator initialized")
+        print(f"   ℹ️ Available providers: {status.get('available_providers', 0)}")
         
-        return True
+        if status.get('available_providers', 0) == 0:
+            print("   ⚠️ No LLM providers configured (set API keys to test)")
         
     except Exception as e:
-        print(f"❌ LLM orchestrator error: {e}")
+        print(f"   ❌ LLM orchestrator failed: {e}")
         return False
-
-async def test_rag_engine():
-    """Test RAG engine initialization"""
-    print("\n🧪 Testing RAG engine...")
     
+    # Test 5: RAG Engine Integration (without LLM calls)
+    print("\n5. Testing RAG Engine...")
     try:
-        from src.core.vector_store import VectorStore
-        from src.orchestration.llm_orchestrator import LLMOrchestrator
-        from src.core.rag_engine import RAGEngine
-        
-        vector_store = VectorStore(persist_directory="./test_chroma_db")
-        llm_orchestrator = LLMOrchestrator()
-        rag_engine = RAGEngine(vector_store, llm_orchestrator)
-        
-        stats = await rag_engine.get_engine_stats()
-        print(f"✅ RAG engine initialized: {stats}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ RAG engine error: {e}")
-        return False
-
-async def test_fastapi_app():
-    """Test FastAPI app import"""
-    print("\n🧪 Testing FastAPI app...")
-    
-    try:
-        from src.api.main import app
-        print("✅ FastAPI app imported successfully")
-        
-        # Test app endpoints
-        routes = [route.path for route in app.routes]
-        print(f"✅ Available routes: {routes}")
-        
-        return True
+        with tempfile.TemporaryDirectory() as temp_dir:
+            vector_store = VectorStore(persist_directory=temp_dir)
+            orchestrator = LLMOrchestrator()
+            
+            rag_engine = RAGEngine(
+                vector_store=vector_store,
+                llm_orchestrator=orchestrator
+            )
+            
+            # Add test documents
+            if chunks:
+                await vector_store.add_documents(chunks)
+            
+            # Test stats
+            stats = await rag_engine.get_engine_stats()
+            print(f"   ✅ RAG engine initialized")
+            print(f"   ✅ Engine status: {stats.get('engine_status', 'unknown')}")
         
     except Exception as e:
-        print(f"❌ FastAPI app error: {e}")
+        print(f"   ❌ RAG engine failed: {e}")
         return False
-
-async def main():
-    """Run all tests"""
-    print("🚀 Starting RAG System Setup Tests\n")
     
-    tests = [
-        ("Import Test", test_imports),
-        ("Text Processing", test_text_processing),
-        ("Document Processor", test_document_processor),
-        ("Vector Store", test_vector_store),
-        ("LLM Orchestrator", test_llm_orchestrator),
-        ("RAG Engine", test_rag_engine),
-        ("FastAPI App", test_fastapi_app),
+    print("\n" + "=" * 60)
+    print("✅ All core components are working correctly!")
+    print("\n🚀 Next steps:")
+    print("1. Set up your API keys in the .env file")
+    print("2. Run: python src/api/main.py")
+    print("3. In another terminal: streamlit run src/frontend/streamlit_app.py")
+    print("4. Or use Docker: docker-compose up -d")
+    
+    return True
+
+
+def test_api_keys():
+    """Test if API keys are configured"""
+    print("\n🔑 Checking API Key Configuration:")
+    
+    keys_to_check = [
+        ("OPENAI_API_KEY", "OpenAI"),
+        ("ANTHROPIC_API_KEY", "Anthropic"),
+        ("AZURE_OPENAI_API_KEY", "Azure OpenAI"),
+        ("AZURE_OPENAI_ENDPOINT", "Azure OpenAI Endpoint")
     ]
     
-    results = []
+    configured_count = 0
     
-    for test_name, test_func in tests:
-        try:
-            result = await test_func()
-            results.append((test_name, result))
-        except Exception as e:
-            print(f"❌ {test_name} failed with exception: {e}")
-            results.append((test_name, False))
+    for env_var, service in keys_to_check:
+        value = os.getenv(env_var)
+        if value and value != "your-api-key-here" and value != "":
+            print(f"   ✅ {service}: Configured")
+            configured_count += 1
+        else:
+            print(f"   ⚠️ {service}: Not configured")
     
-    # Summary
-    print("\n" + "="*50)
-    print("📊 TEST SUMMARY")
-    print("="*50)
-    
-    passed = 0
-    total = len(results)
-    
-    for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"{status} - {test_name}")
-        if result:
-            passed += 1
-    
-    print(f"\n🎯 Results: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("🎉 All tests passed! Your RAG system is ready to use.")
-        print("\nNext steps:")
-        print("1. Set up your API keys in .env file")
-        print("2. Run: python -m uvicorn src.api.main:app --reload")
-        print("3. Open http://localhost:8000 to test the API")
+    if configured_count == 0:
+        print("\n   ℹ️ No API keys configured. Set them in .env file to test LLM functionality.")
     else:
-        print("⚠️ Some tests failed. Please check the errors above.")
+        print(f"\n   ✅ {configured_count}/{len(keys_to_check)} services configured")
     
-    # Cleanup test database
-    import shutil
-    if os.path.exists("./test_chroma_db"):
-        shutil.rmtree("./test_chroma_db")
-        print("🧹 Cleaned up test database")
+    return configured_count > 0
+
+
+def test_dependencies():
+    """Test if all required dependencies are installed"""
+    print("\n📦 Checking Dependencies:")
+    
+    dependencies = [
+        ("fastapi", "FastAPI web framework"),
+        ("uvicorn", "ASGI server"),
+        ("streamlit", "Frontend framework"),
+        ("chromadb", "Vector database"),
+        ("sentence_transformers", "Embedding models"),
+        ("openai", "OpenAI client"),
+        ("anthropic", "Anthropic client"),
+        ("langchain", "LLM orchestration"),
+        ("pydantic", "Data validation"),
+        ("sqlalchemy", "Database ORM")
+    ]
+    
+    missing_deps = []
+    
+    for package, description in dependencies:
+        try:
+            __import__(package)
+            print(f"   ✅ {package}: {description}")
+        except ImportError:
+            print(f"   ❌ {package}: Missing - {description}")
+            missing_deps.append(package)
+    
+    if missing_deps:
+        print(f"\n   ⚠️ Missing dependencies: {', '.join(missing_deps)}")
+        print("   Run: pip install -r requirements.txt")
+        return False
+    else:
+        print("\n   ✅ All dependencies are installed")
+        return True
+
+
+async def main():
+    """Main test function"""
+    print("Starting RAG Conversational AI Assistant setup test...\n")
+    
+    # Test dependencies first
+    deps_ok = test_dependencies()
+    if not deps_ok:
+        print("\n❌ Please install missing dependencies first.")
+        return
+    
+    # Test API keys
+    test_api_keys()
+    
+    # Test system components
+    system_ok = await test_setup()
+    
+    if system_ok:
+        print("\n🎉 Setup test completed successfully!")
+        print("The RAG Conversational AI Assistant is ready to use.")
+    else:
+        print("\n❌ Setup test failed. Please check the errors above.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-
